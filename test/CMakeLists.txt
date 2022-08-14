@@ -1,0 +1,6 @@
+add_executable(csv-parser-test csv-parser-test.cpp)
+add_executable(flipper-test flipper-test.cpp)
+add_executable(formula-test formula-test.cpp)
+add_executable(merger-test merger-test.cpp)
+add_executable(operation-producer-test operation-producer-test.cpp)
+add_executable(tree-test tree-test.cpp)
