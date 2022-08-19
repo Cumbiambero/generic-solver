@@ -7,7 +7,6 @@
 #include <memory>
 #include <utility>
 
-
 class Node {
 public:
     virtual ~Node() = default;

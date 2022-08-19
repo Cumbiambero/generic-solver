@@ -1,8 +1,7 @@
 #ifndef GENERIC_SOLVER_CREATORS_MERGER_HPP
 #define GENERIC_SOLVER_CREATORS_MERGER_HPP
 
-#include "../utils/arbitrary.hpp"
-#include "../solver/formula.hpp"
+#include "../solver-base.hpp"
 #include "operation-producer.hpp"
 
 class Merger {

@@ -1,20 +1,16 @@
 #ifndef GENERIC_SOLVER_CHANGERS_FLIPPER_HPP
 #define GENERIC_SOLVER_CHANGERS_FLIPPER_HPP
 
-#include "../utils/arbitrary.hpp"
-#include "../solver/formula.hpp"
-#include <cmath>
-#include <cstdlib>
-#include <vector>
+#include "changer-base.hpp"
 
-class Flipper {
+class Flipper : public Changer {
 public:
-    Flipper() : coin(make_shared<RandomCoin>()) {}
+    Flipper() : Changer() {}
 
     template<typename C>
-    explicit Flipper(C &coin) : coin(make_shared<C>(coin)) {}
+    explicit Flipper(C &coin) : Changer(coin) {}
 
-    void flip(Formula &formula) {
+    void change(Formula &formula) {
         for (auto binary: formula.getBinaryOperators()) {
             if (coin->toss()) {
                 auto temp = binary->getRight();
@@ -23,9 +19,6 @@ public:
             }
         }
     }
-
-private:
-    shared_ptr<Coin> coin;
 };
 
 #endif
