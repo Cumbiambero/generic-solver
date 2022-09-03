@@ -4,9 +4,9 @@
 #include "tree-base.hpp"
 
 enum BinaryOperationType {
-    ADD, SUB, MULT, DIV, POW, HYP
+    ADD, SUB, MUL, DIV, POW, HYP
 };
-static vector<BinaryOperationType> BINARY_OPERATIONS({ADD, SUB, MULT, DIV, POW, HYP});
+static vector<BinaryOperationType> BINARY_OPERATIONS({ADD, SUB, MUL, DIV, POW, HYP});
 
 class BinaryOperation : public Node {
 public:
@@ -36,11 +36,11 @@ public:
         return "(" + left->toString() + symbol + right->toString() + ")";
     }
 
-    shared_ptr<Node> getLeft() { return left; }
+    shared_ptr<Node>& getLeft() { return left; }
 
     void setLeft(shared_ptr<Node> node) { left = std::move(node); }
 
-    shared_ptr<Node> getRight() { return right; }
+    shared_ptr<Node>& getRight() { return right; }
 
     void setRight(shared_ptr<Node> node) { right = std::move(node); }
 

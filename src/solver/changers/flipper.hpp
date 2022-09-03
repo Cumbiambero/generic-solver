@@ -10,7 +10,7 @@ public:
     template<typename C>
     explicit Flipper(C &coin) : Changer(coin) {}
 
-    void change(Formula &formula) {
+    void change(Formula &formula) override {
         for (auto binary: formula.getBinaryOperators()) {
             if (coin->toss()) {
                 auto temp = binary->getRight();

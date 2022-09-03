@@ -19,15 +19,16 @@ public:
 class Wrapper : public Node {
 public:
     Wrapper() = delete;
+    explicit Wrapper(shared_ptr<Node> node) : node(std::move(node)) {}
 
     template<typename N>
-    explicit Wrapper(const N &node) : node(static_cast<const shared_ptr<Node>>(make_shared<N>(node))) {}
+    explicit Wrapper(const N &node) : node(make_shared<N>(node)) {}
 
     string toString() override { return node->toString(); }
 
     number calculate() override { return node->calculate(); }
 
-    shared_ptr<Node> getNode() { return node; }
+    shared_ptr<Node>& getNode() { return node; }
 
 protected:
     shared_ptr<Node> node;
@@ -51,6 +52,10 @@ public:
 
     number calculate() override { return value; };
 
+    void setValue(number val) {
+        this->value = val;
+    }
+
 protected:
     number value;
 };
@@ -64,8 +69,6 @@ public:
             : Number(value), symbol(std::move(symbol)) {}
 
     string toString() override { return symbol; }
-
-    void setValue(number value) { this->value = value; }
 
 private:
     const string symbol;
