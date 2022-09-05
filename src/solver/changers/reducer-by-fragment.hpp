@@ -1,16 +1,16 @@
-#ifndef GENERIC_SOLVER_CHANGERS_DECREMENTOR_BY_FRAGMENT_HPP
-#define GENERIC_SOLVER_CHANGERS_DECREMENTOR_BY_FRAGMENT_HPP
+#ifndef GENERIC_SOLVER_CHANGERS_REDUCER_BY_FRAGMENT_HPP
+#define GENERIC_SOLVER_CHANGERS_REDUCER_BY_FRAGMENT_HPP
 
 #include "changer-base.hpp"
 #include <cmath>
 #include <cfloat>
 
-class DecrementorByFragment : public Changer {
+class ReducerByFragment : public Changer {
 public:
-    DecrementorByFragment() : Changer() {}
+    ReducerByFragment() : Changer() {}
 
     template<typename C>
-    explicit DecrementorByFragment(C &coin) : Changer(coin) {}
+    explicit ReducerByFragment(C &coin) : Changer(coin) {}
 
     void change(Formula &formula) override {
         for (auto val: formula.getNumbers()) {
