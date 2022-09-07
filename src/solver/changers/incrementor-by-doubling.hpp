@@ -10,12 +10,18 @@ public:
     template<typename C>
     explicit IncrementorByDoubling(C &coin) : Changer(coin) {}
 
-    void change(Formula &formula) override {
-        for (auto val: formula.getNumbers()) {
+    Formula change(const Formula &formula) override {
+        Formula result(formula);
+        for (auto val: result.getNumbers()) {
             if (coin->toss()) {
                 val->setValue(val->calculate() * 2);
             }
         }
+        return result;
+    }
+
+    ChangerType getType() override {
+        return INCREMENTOR_BY_DOUBLING;
     }
 };
 

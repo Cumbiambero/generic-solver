@@ -45,7 +45,7 @@ public:
         return result;
     }
 
-    string toString() { return root->toString(); }
+    string toString() const { return root->toString(); }
 
     shared_ptr<Node>& getRoot() { return root; }
 

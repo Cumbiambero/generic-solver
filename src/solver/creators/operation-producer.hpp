@@ -1,7 +1,8 @@
 #ifndef GENERIC_SOLVER_CREATORS_OPERATION_PRODUCER_HPP
 #define GENERIC_SOLVER_CREATORS_OPERATION_PRODUCER_HPP
 
-#include "../solver-base.hpp"
+#include "../../utils/arbitrary.hpp"
+#include "../formula.hpp"
 
 class OperationProducer {
 public:
