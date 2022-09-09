@@ -21,7 +21,7 @@ public:
     }
 
     ChangerType getType() override {
-        return REDUCER_BY_HALVING;
+        return ChangerType::REDUCER_BY_HALVING;
     }
 };
 

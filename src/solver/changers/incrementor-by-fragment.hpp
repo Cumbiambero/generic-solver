@@ -30,7 +30,7 @@ public:
     }
 
     ChangerType getType() override {
-        return INCREMENTOR_BY_FRAGMENT;
+        return ChangerType::INCREMENTOR_BY_FRAGMENT;
     }
 };
 

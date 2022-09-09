@@ -21,7 +21,7 @@ public:
     }
 
     ChangerType getType() override {
-        return INCREMENTOR_BY_ONE;
+        return ChangerType::INCREMENTOR_BY_ONE;
     }
 };
 

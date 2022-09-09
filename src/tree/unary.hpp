@@ -3,7 +3,7 @@
 
 #include "tree-base.hpp"
 
-enum UnaryOperationType {
+enum class UnaryOperationType {
     SIN,
     COS,
     ARC_SIN,
@@ -21,14 +21,17 @@ enum UnaryOperationType {
     EXP
 };
 static vector<UnaryOperationType> UNARY_OPERATIONS(
-        {SIN, COS, ARC_SIN, ARC_COS, TAN, ARC_TAN, SQUARE, CUBE, SQUARE_ROOT, SQUARE_ROOT_NEG, CUBE_ROOT, LOG, LOG_10,
-         LOG_2, EXP});
+        {UnaryOperationType::SIN, UnaryOperationType::COS, UnaryOperationType::ARC_SIN, UnaryOperationType::ARC_COS,
+         UnaryOperationType::TAN, UnaryOperationType::ARC_TAN, UnaryOperationType::SQUARE, UnaryOperationType::CUBE,
+         UnaryOperationType::SQUARE_ROOT, UnaryOperationType::SQUARE_ROOT_NEG, UnaryOperationType::CUBE_ROOT,
+         UnaryOperationType::LOG, UnaryOperationType::LOG_10,
+         UnaryOperationType::LOG_2, UnaryOperationType::EXP});
 
 class UnaryOperation : public Node {
 public:
 
     UnaryOperation(string symbol, std::shared_ptr<Node> operand)
-    : symbol(std::move(symbol)), operand(std::move(operand)) {}
+            : symbol(std::move(symbol)), operand(std::move(operand)) {}
 
     template<typename O>
     UnaryOperation(string symbol, const O &operand)
@@ -43,10 +46,10 @@ public:
 
     number calculate() override = 0;
 
-    shared_ptr<Node>& getOperand() { return operand; }
+    shared_ptr <Node> &getOperand() { return operand; }
 
 protected:
-    shared_ptr<Node> operand;
+    shared_ptr <Node> operand;
     const string symbol;
 };
 

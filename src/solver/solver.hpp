@@ -10,8 +10,11 @@
 
 class Solution {
 public:
-    Solution(const Formula &formula, ChangerType changer, number rate) : formula(formula), lastChanger(changer),
-                                                                         rate(rate) {}
+    Solution(Formula formula, ChangerType lastChanger, number rate)
+            : formula(formula), lastChanger(lastChanger), rate(rate) {    }
+
+    Solution(const Solution &copy)
+            : formula(copy.formula), lastChanger(copy.lastChanger), rate(copy.rate) {    }
 
     bool operator<(Solution &other) const { return (this->rate < other.rate); }
 
@@ -37,31 +40,25 @@ public:
         return !(other == *this);
     }
 
-    [[nodiscard]] Formula getForumla() const { return formula; }
+    [[nodiscard]] Formula getFormula() { return formula; }
 
-    [[nodiscard]] ChangerType getLastChanger() const { return lastChanger; }
+    [[nodiscard]] ChangerType getLastChanger() { return lastChanger; }
 
-    [[nodiscard]] number getRate() const { return rate; }
+    [[nodiscard]] number getRate() { return rate; }
 
 private:
-    const Formula &formula;
-    const ChangerType lastChanger;
-    const number rate;
+    Formula formula;
+    ChangerType lastChanger;
+    number rate;
 };
 
-class Result {
+class Evaluator {
 public:
-    static number rate(const number actual, const number expected) {
-        return 1 - abs(1 - expected / actual);
-    }
-
-    static number rate(Formula &formula, const vector<vector<number>> &input,
-                       const vector<vector<number>> &expected) {
-        number result = 0;
-        size_t records = expected.size();
-
+    static number rate(Formula &formula, const vector<vector<number>> &input, const vector<vector<number>> &expected) {
+        number result = 0.0;
+        number records = expected.size();
         for (auto i = 0; i < records; ++i) {
-            result += expected[i][0] / formula.evaluate(input[i][0]) / records;
+            result += ((expected[i][0]) / formula.evaluate(input[i][0])) / records; // TODO: Fix this calculation
         }
         return result == 0 ? 0 : 1 - abs(1 - result);
     }
@@ -75,25 +72,25 @@ public:
            const vector<vector<number>> &results, R &randomNumber)
             : variables(std::move(variables)), input(input), results(results),
               cores(max((unsigned int) 1, thread::hardware_concurrency())),
-              currentState(READY), operationProducer(make_unique<OperationProducer>(OperationProducer(randomNumber))) {}
+              currentState(SolverState::READY),
+              operationProducer(make_unique<OperationProducer>(OperationProducer(randomNumber))) {}
 
     Solver(vector<Variable> variables, const vector<vector<number>> &input, const vector<vector<number>> &results)
             : variables(std::move(variables)), input(input), results(results),
               cores(max((unsigned int) 1, thread::hardware_concurrency())),
-              currentState(READY), operationProducer(make_unique<OperationProducer>()) {}
+              currentState(SolverState::READY), operationProducer(make_unique<OperationProducer>()) {}
 
 
     void start() {
-        if (currentState == READY) {
+        if (currentState == SolverState::READY) {
             Formula formula(operationProducer->produce(variables), variables);
-            Solution solution(formula, FLIPPER, 0.0);
-            this->solutions.insert(make_unique<Solution>(solution));
+            this->solutions.insert(make_unique<Solution>(formula, ChangerType::FLIPPER, 12.3).get());
         }
-        currentState = RUNNING;
+        currentState = SolverState::RUNNING;
 
         for (int i = 0; i < cores; ++i) {
             thread worker([this]() {
-                while (currentState == RUNNING) {
+                while (currentState == SolverState::RUNNING) {
                     work();
                 }
             });
@@ -102,7 +99,7 @@ public:
     }
 
     void pause() {
-        currentState = PAUSED;
+        currentState = SolverState::PAUSED;
     }
 
     [[nodiscard]] SolverState getState() const {
@@ -121,18 +118,19 @@ private:
     unique_ptr<OperationProducer> operationProducer;
     SolverState currentState;
 
-    set<unique_ptr<Solution>> solutions;
+    set<Solution *> solutions;
     unsigned int cores;
     atomic<unsigned int> pos = 0;
 
     void work() {
         auto changer = pickChanger();
-        auto formula = changer->change(solutions.begin()->get()->getForumla()); // TODO: Fix SISSEGV that happens here
-        number rate = Result::rate(formula, input, results);
-        Solution solution(formula, changer->getType(), rate);
-        solutions.insert(make_unique<Solution>(solution));
+        auto bestFormula = (*solutions.begin())->getFormula();
+        auto formula = changer->change(bestFormula);
+        // number rate = Evaluator::rate(formula, input, results); // TODO: enable this line
+        number rate = 1.0; // TODO: remove this
+        solutions.insert(make_unique<Solution>(formula, changer->getType(), rate).get());
         if (rate > 0.9999999999) { // TODO: make this value configurable
-            currentState = DONE;
+            currentState = SolverState::DONE;
         }
     }
 
@@ -142,12 +140,11 @@ private:
             return changerPicker.pickRandomChanger();
         }
         auto it = solutions.begin();
-
-        // advance(it, atomic_load(&pos)); // TODO: try to use more than only the first position
-
-        return changerPicker.pickChanger(it->get()->getLastChanger());
+        advance(it, operationProducer->getRandomNumber()->calculate(0, min((int) solutions.size() - 1,
+                                                                           (int) atomic_load(&pos))));
+        Changer *changer = changerPicker.pickChanger((*it)->getLastChanger());
+        return changer;
     }
-
 };
 
 #endif

@@ -42,7 +42,7 @@ class Value : public Node {
 
 class Number : public Value {
 public:
-    explicit Number(const number value) : value(value) {}
+    explicit Number(number value) : value(value) {}
 
     string toString() override {
         ostringstream oss;

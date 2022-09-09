@@ -5,22 +5,6 @@ An evolutionary approach will be used.
 
 The project has not yet reached a usable state.
 
-## Actual implementation
-
-### First draft
-- Tree structure
-- Formula representation
-
-### In progress
-- Solver
-- Creators
-- Changers
-- Input definition (two CSV files)
-
-### Not yet started
-- Input processing
-- Parallelization
-
 ## Usage
 ### Installation
 ```
