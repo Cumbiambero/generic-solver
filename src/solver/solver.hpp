@@ -11,10 +11,10 @@
 class Solution {
 public:
     Solution(Formula formula, ChangerType lastChanger, number rate)
-            : formula(formula), lastChanger(lastChanger), rate(rate) {    }
+            : formula(formula), lastChanger(lastChanger), rate(rate) {}
 
     Solution(const Solution &copy)
-            : formula(copy.formula), lastChanger(copy.lastChanger), rate(copy.rate) {    }
+            : formula(copy.formula), lastChanger(copy.lastChanger), rate(copy.rate) {}
 
     bool operator<(Solution &other) const { return (this->rate < other.rate); }
 
@@ -55,11 +55,19 @@ private:
 class Evaluator {
 public:
     static number rate(Formula &formula, const vector<vector<number>> &input, const vector<vector<number>> &expected) {
-        number result = 0.0;
-        number records = expected.size();
-        for (auto i = 0; i < records; ++i) {
-            result += ((expected[i][0]) / formula.evaluate(input[i][0])) / records; // TODO: Fix this calculation
+        number result = 0;
+        number records = 0;
+        for (int l = 0; l < expected.size(); l++) {
+            for (int c = 0; c < expected[l].size(); c++) {
+                number currentResult = formula.evaluate(input[l][c]);
+                number expectedResult = expected[l][c];
+                number dividend(min(expectedResult, currentResult));
+                number divisor(max(expectedResult, currentResult));
+                result += dividend / divisor;
+                records++;
+            }
         }
+        result /= records;
         return result == 0 ? 0 : 1 - abs(1 - result);
     }
 };
