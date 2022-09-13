@@ -19,6 +19,7 @@ public:
 class Wrapper : public Node {
 public:
     Wrapper() = delete;
+
     explicit Wrapper(shared_ptr<Node> node) : node(std::move(node)) {}
 
     template<typename N>
@@ -28,19 +29,13 @@ public:
 
     number calculate() override { return node->calculate(); }
 
-    shared_ptr<Node>& getNode() { return node; }
+    shared_ptr<Node> &getNode() { return node; }
 
 protected:
     shared_ptr<Node> node;
 };
 
-class Value : public Node {
-    string toString() override = 0;
-
-    number calculate() override = 0;
-};
-
-class Number : public Value {
+class Number : public Node {
 public:
     explicit Number(number value) : value(value) {}
 

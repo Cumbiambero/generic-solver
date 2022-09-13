@@ -10,11 +10,15 @@ public:
     template<typename C, typename N>
     explicit NumberInserter(C &coin, N &randomNumber) : Creator(coin,randomNumber) {}
 
-    Formula insert(Formula &formula) {
+    Formula change(const Formula &formula) override {
         auto one = shared_ptr<Node>(new Number(1));
         auto node = operationProducer->createBinaryOperation(formula.getRoot(), one);
         Formula result(node, formula.getVariables());
         return result;
+    }
+
+    ChangerType getType() override {
+        return ChangerType::NUMBER_INSERTER;
     }
 };
 

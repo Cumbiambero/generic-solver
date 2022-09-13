@@ -74,25 +74,15 @@ public:
 
 class Solver {
 public:
-    template<typename R>
-    explicit
-    Solver(vector<Variable> variables, const vector<vector<number>> &input,
-           const vector<vector<number>> &results, R &randomNumber)
-            : variables(std::move(variables)), input(input), results(results),
-              cores(max((unsigned int) 1, thread::hardware_concurrency())),
-              currentState(SolverState::READY),
-              operationProducer(make_unique<OperationProducer>(OperationProducer(randomNumber))) {}
-
     Solver(vector<Variable> variables, const vector<vector<number>> &input, const vector<vector<number>> &results)
             : variables(std::move(variables)), input(input), results(results),
               cores(max((unsigned int) 1, thread::hardware_concurrency())),
-              currentState(SolverState::READY), operationProducer(make_unique<OperationProducer>()) {}
-
+              currentState(SolverState::READY) {}
 
     void start() {
         if (currentState == SolverState::READY) {
-            Formula formula(operationProducer->produce(variables), variables);
-            this->solutions.insert(make_unique<Solution>(formula, ChangerType::FLIPPER, 12.3).get());
+            Formula formula(operationProducer.produce(variables), variables);
+            this->solutions.insert(make_unique<Solution>(formula, ChangerType::OPERATION_REPLACER, 0.0).get());
         }
         currentState = SolverState::RUNNING;
 
@@ -123,7 +113,8 @@ private:
     const vector<vector<number>> input;
     const vector<vector<number>> results;
     ChangerPicker changerPicker;
-    unique_ptr<OperationProducer> operationProducer;
+    Merger merger;
+    OperationProducer operationProducer;
     SolverState currentState;
 
     set<Solution *> solutions;
@@ -132,24 +123,37 @@ private:
 
     void work() {
         auto changer = pickChanger();
-        auto bestFormula = (*solutions.begin())->getFormula();
-        auto formula = changer->change(bestFormula);
-        // number rate = Evaluator::rate(formula, input, results); // TODO: enable this line
-        number rate = 1.0; // TODO: remove this
-        solutions.insert(make_unique<Solution>(formula, changer->getType(), rate).get());
-        if (rate > 0.9999999999) { // TODO: make this value configurable
-            currentState = SolverState::DONE;
+        auto bestSolution = solutions.begin();
+        auto bestFormula = (*bestSolution)->getFormula();
+        if(changer == nullptr) {
+            advance(bestSolution, 1);
+            auto secondBestFormula = (*bestSolution)->getFormula();
+            auto formula = merger.merge(bestFormula, secondBestFormula);
+            number rate = Evaluator::rate(formula, input, results);
+            solutions.insert(make_shared<Solution>(formula, ChangerType::MERGER, rate).get());
+        } else {
+            auto formula = changer->change(bestFormula);
+            number rate = Evaluator::rate(formula, input, results);
+            solutions.insert(make_shared<Solution>(formula, changer->getType(), rate).get());
+            if (rate > 0.9999999999) { // TODO: make this value configurable
+                currentState = SolverState::DONE;
+            }
         }
     }
 
     Changer *pickChanger() {
+        auto it = solutions.begin();
         if (pos++ == cores) {
             pos = 0;
-            return changerPicker.pickRandomChanger();
+            if (merger.getCoin()->toss()) {
+                return changerPicker.pickRandomChanger();
+            } else if (solutions.size() > 1) {
+                return nullptr;
+            }            
         }
-        auto it = solutions.begin();
-        advance(it, operationProducer->getRandomNumber()->calculate(0, min((int) solutions.size() - 1,
-                                                                           (int) atomic_load(&pos))));
+        
+        advance(it, operationProducer.getRandomNumber()->calculate(0, min((int) solutions.size() - 1,
+                                                                          (int) atomic_load(&pos))));
         Changer *changer = changerPicker.pickChanger((*it)->getLastChanger());
         return changer;
     }

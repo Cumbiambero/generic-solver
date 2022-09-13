@@ -9,7 +9,7 @@ TEST_CASE("Unary operations") {
     Formula formula(operation, x);
     CHECK(formula.toString() == "sin(x)");
 
-    operationReplacer.replace(formula);
+    operationReplacer.change(formula);
     CHECK(formula.toString() == "(x)³");
 }
 
@@ -19,7 +19,7 @@ TEST_CASE("Binary operations") {
     Formula formula(operation, x);
     CHECK(formula.toString() == "(x+4)");
 
-    operationReplacer.replace(formula);
+    operationReplacer.change(formula);
     CHECK(formula.toString() == "(x*4)");
 }
 
@@ -31,6 +31,6 @@ TEST_CASE("Mixed operations") {
     Formula formula(square, x);
     CHECK(formula.toString() == "((7/(x+4)))²");
 
-    operationReplacer.replace(formula);
+    operationReplacer.change(formula);
     CHECK(formula.toString() == "((7/(x*4)))³");
 }
