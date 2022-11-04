@@ -20,22 +20,20 @@ public:
         init(vars);
     }
 
-    Formula(shared_ptr <Node> node, const vector<Variable> &vars)
-            : root(std::move(node)) {
-        init(vars);
-    }
-
     Formula(const Formula &copy)
-            : root(copy.root), constants(copy.constants), unaryOperators(copy.unaryOperators),
-              binaryOperators(copy.binaryOperators), variables(copy.variables), numbers(copy.numbers),
-              variablePositions(copy.variablePositions), variableNames(copy.variableNames) {}
+            : constants(copy.constants),
+              binaryOperators(copy.binaryOperators),
+              numbers(copy.numbers),
+              variablePositions(copy.variablePositions),
+              variableNames(copy.variableNames),
+              root(shared_ptr(copy.root)) {}
 
     virtual ~Formula() = default;
 
     number evaluate(number params...) {
         std::vector<number> values = {params};
         size_t numberOfParams = values.size();
-        if (variables.size() != numberOfParams) {
+        if (variableNames.size() != numberOfParams) {
             throw invalid_argument("the number of params does not match with the number of params");
         }
 
@@ -51,15 +49,19 @@ public:
 
     [[nodiscard]] string toString() const { return root->toString(); }
 
-    [[nodiscard]] shared_ptr<Node>& getRoot() { return root; }
+    [[nodiscard]] shared_ptr <Node> &getRoot() { return root; }
 
-    [[nodiscard]] shared_ptr<Node> getRoot() const { return root; }
+    [[nodiscard]] shared_ptr <Node> getRoot() const { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
-    vector<UnaryOperation *> &getUnaryOperators() { return unaryOperators; }
-
-    [[nodiscard]] vector<Variable> getVariables() const { return variables; }
+    [[nodiscard]] vector<Variable> getVariables() const {
+        std::vector<Variable> variables;
+        for (const auto& [_, value]: variableNames) {
+            variables.push_back(*value);
+        }
+        return variables;
+    }
 
     vector<Number *> getNumbers() {
         return this->numbers;
@@ -68,22 +70,18 @@ public:
 private:
     mutex lock;
     set<Constant *> constants;
-    vector<UnaryOperation *> unaryOperators;
     vector<BinaryOperation *> binaryOperators;
-    vector<Variable> variables;
     vector<Number *> numbers;
     map<size_t, Variable *> variablePositions;
     map<string, Variable *> variableNames;
     shared_ptr <Node> root;
 
     void init(const vector<Variable> &vars) {
-        variables.clear();
         variableNames.clear();
         variablePositions.clear();
         traverse(root);
         for (size_t i = 0; i < vars.size(); i++) {
             Variable variable = vars[i];
-            variables.push_back(variable);
             variablePositions[i] = variableNames[variable.toString()];
         }
     }
@@ -94,7 +92,6 @@ private:
             auto *unary = dynamic_cast<UnaryOperation *>(current.get());
             if (unary != nullptr) {
                 traverse(unary->getOperand());
-                unaryOperators.push_back(unary);
             }
             auto *constant = dynamic_cast<Constant *>(current.get());
             if (constant != nullptr) {
