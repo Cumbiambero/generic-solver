@@ -33,14 +33,20 @@ private:
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(node.get());
             if (unary != nullptr && coin->toss()) {
-                traverse(unary->getOperand());
                 auto created = operationProducer->createUnaryOperation(unary->getOperand());
                 node.swap(created);
+                if (coin->toss()) {
+                    return;
+                }
+                traverse(unary->getOperand());
             }
         } else {
             if (coin->toss()) {
                 auto created = operationProducer->createBinaryOperation(binary->getLeft(), binary->getRight());
                 node.swap(created);
+                if (coin->toss()) {
+                    return;
+                }
             }
             traverse(binary->getLeft());
             traverse(binary->getRight());

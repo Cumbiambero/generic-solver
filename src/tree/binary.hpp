@@ -4,11 +4,11 @@
 #include "tree-base.hpp"
 
 enum class BinaryOperationType {
-    ADD, SUB, MUL, DIV, POW, HYP
+    ADD, SUB, MUL, DIV, POW
 };
 static vector<BinaryOperationType> BINARY_OPERATIONS(
         {BinaryOperationType::ADD, BinaryOperationType::SUB, BinaryOperationType::MUL, BinaryOperationType::DIV,
-         BinaryOperationType::POW, BinaryOperationType::HYP});
+         BinaryOperationType::POW});
 
 class BinaryOperation : public Node {
 public:
@@ -95,17 +95,6 @@ public:
 
     number calculate() override {
         return pow(left->calculate(), right->calculate());
-    }
-};
-
-class Hypotenuse : public BinaryOperation {
-public:
-    template<typename L, typename R>
-    Hypotenuse(const L &left, const R &right)
-            : BinaryOperation("hypot", left, right) {}
-
-    number calculate() override {
-        return hypot(left->calculate(), right->calculate());
     }
 };
 

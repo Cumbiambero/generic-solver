@@ -10,7 +10,7 @@
 
 class Solution {
 public:
-    Solution(const Formula& formula, ChangerType lastChanger, number rate)
+    Solution(const Formula &formula, ChangerType lastChanger, number rate)
             : formula(formula), lastChanger(lastChanger), rate(rate) {}
 
     Solution(const Solution &copy) = default;
@@ -18,15 +18,15 @@ public:
     bool operator<(const Solution &other) const { return (this->rate < other.rate); }
 
     bool operator>(const Solution &other) const {
-        return other.rate < this->rate;
+        return rate > other.rate;
     }
 
     bool operator<=(const Solution &other) const {
-        return other.rate >= this->rate;
+        return rate <= other.rate;
     }
 
     bool operator>=(const Solution &other) const {
-        return this->rate >= other.rate;
+        return rate >= other.rate;
     }
 
     bool operator==(const Solution &other) const {
@@ -62,7 +62,7 @@ public:
                 number expectedResult = expected[l][c];
                 number dividend(min(expectedResult, currentResult));
                 number divisor(max(expectedResult, currentResult));
-                result += dividend / divisor;
+                result += abs(dividend / divisor);
                 records++;
             }
         }
@@ -94,7 +94,8 @@ public:
             });
             worker.join();
         }
-        cout << (*solutions.rbegin()).getFormula().toString() << endl; // TODO: maybe print more than just the best solution
+        cout << (*solutions.rbegin()).getFormula().toString()
+             << endl; // TODO: maybe print more than just the best solution
     }
 
     void pause() {
@@ -113,6 +114,7 @@ private:
     const vector<Variable> variables;
     const vector<vector<number>> input;
     const vector<vector<number>> results;
+    mutex lock;
     ChangerPicker changerPicker;
     Merger merger;
     OperationProducer operationProducer;
@@ -127,31 +129,34 @@ private:
         auto bestSolutionIt = solutions.begin();
         auto bestFormula = (*bestSolutionIt).getFormula();
         number rate;
-        if(changer == nullptr) {
+        if (changer == nullptr) {
             advance(bestSolutionIt, 1);
             auto secondBestFormula = (*bestSolutionIt).getFormula();
             auto formula = merger.merge(bestFormula, secondBestFormula);
             rate = Evaluator::rate(formula, input, results);
-            solutions.insert(Solution(formula, ChangerType::MERGER, rate));
+            storeSolution(ChangerType::MERGER, rate, formula);
         } else {
             auto formula = changer->change(bestFormula);
             rate = Evaluator::rate(formula, input, results);
-            solutions.insert(Solution(formula, changer->getType(), rate));
+            storeSolution(changer->getType(), rate, formula);
         }
         if (rate > 0.9999999999) { // TODO: make this value configurable
             currentState = SolverState::DONE;
         }
     }
 
+    void storeSolution(ChangerType type, number rate, const Formula &formula) {
+        lock.lock();
+        solutions.insert(Solution(formula, type, rate));
+        lock.unlock();
+    }
+
     Changer *pickChanger() {
         auto it = solutions.begin();
-        if (pos++ == cores) {
-            pos = 0;
-            if (merger.getCoin()->toss()) {
-                return changerPicker.pickRandomChanger();
-            } else if (solutions.size() > 1) {
-                return nullptr;
-            }
+        if (merger.getCoin()->toss()) {
+            return changerPicker.pickRandomChanger();
+        } else if (solutions.size() > 1) {
+            return nullptr;
         }
 
         advance(it, operationProducer.getRandomNumber()->calculate(0, min((int) solutions.size() - 1,

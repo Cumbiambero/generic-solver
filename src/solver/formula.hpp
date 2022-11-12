@@ -38,8 +38,10 @@ public:
         }
 
         lock.lock();
-        for (size_t i = 0; i < numberOfParams; i++) {
-            variablePositions[i]->setValue(values[i]);
+        if (!variablePositions.empty() && variablePositions.size() == values.size()) {
+            for (size_t i = 0; i < numberOfParams; i++) {
+                variablePositions[i]->setValue(values[i]);
+            }
         }
         number result = root->calculate();
         lock.unlock();
@@ -57,14 +59,24 @@ public:
 
     [[nodiscard]] vector<Variable> getVariables() const {
         std::vector<Variable> variables;
-        for (const auto& [_, value]: variableNames) {
-            variables.push_back(*value);
+        if (!variableNames.empty()) {
+            for (const auto &[_, value]: variableNames) {
+                variables.push_back(*value);
+            }
         }
         return variables;
     }
 
     vector<Number *> getNumbers() {
         return this->numbers;
+    }
+
+    bool operator==(const Formula &rhs) const {
+        return root->toString() == rhs.root->toString();
+    }
+
+    bool operator!=(const Formula &rhs) const {
+        return !(rhs == *this);
     }
 
 private:
