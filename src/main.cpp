@@ -16,9 +16,8 @@ int main(int argc, char **argv) {
                 "Please provide 2 paths for input and result csv files followed by the variable names.");
     }
 
-    CSVParser parser;
-    const vector<vector<number>> &input = parser.parse(argv[1]);
-    const vector<vector<number>> &results = parser.parse(argv[2]);
+    const vector<vector<number>> &input = parseCSV(argv[1]);
+    const vector<vector<number>> &results = parseCSV(argv[2]);
 
     if (input.size() != results.size()) {
         throw length_error("Both files need to have the same number of lines.");

@@ -3,6 +3,7 @@
 
 #include "formula.hpp"
 #include "../utils/arbitrary.hpp"
+#include "../utils/config.hpp"
 #include "changers/changers.hpp"
 #include "creators/creators.hpp"
 
