@@ -15,19 +15,13 @@ public:
 
     Solution(const Solution &copy) = default;
 
-    bool operator<(const Solution &other) const { return (this->rate < other.rate); }
+    bool operator<(const Solution &other) const { return rate < other.rate; }
 
-    bool operator>(const Solution &other) const {
-        return rate > other.rate;
-    }
+    bool operator>(const Solution &other) const { return rate > other.rate; }
 
-    bool operator<=(const Solution &other) const {
-        return rate <= other.rate;
-    }
+    bool operator<=(const Solution &other) const { return rate <= other.rate; }
 
-    bool operator>=(const Solution &other) const {
-        return rate >= other.rate;
-    }
+    bool operator>=(const Solution &other) const { return rate >= other.rate; }
 
     bool operator==(const Solution &other) const {
         return lastChanger == other.lastChanger &&
@@ -35,15 +29,13 @@ public:
                formula.toString() == other.formula.toString();
     }
 
-    bool operator!=(const Solution &other) const {
-        return !(other == *this);
-    }
+    bool operator!=(const Solution &other) const { return !(other == *this); }
 
     [[nodiscard]] Formula getFormula() const { return formula; }
 
     [[nodiscard]] ChangerType getLastChanger() const { return lastChanger; }
 
-    [[nodiscard]] number getRate() { return rate; }
+    [[nodiscard]] number getRate() const { return rate; }
 
 private:
     Formula formula;
@@ -82,7 +74,7 @@ public:
         if (currentState == SolverState::READY) {
             auto node = operationProducer.produce(variables);
             Formula formula(node, variables);
-            solutions.insert(Solution(formula, ChangerType::OPERATION_REPLACER, 0.0));
+            solutions.insert(Solution(formula, ChangerType::FLIPPER, Evaluator::rate(formula, input, results)));
         }
         currentState = SolverState::RUNNING;
 
@@ -92,21 +84,24 @@ public:
         }
         if (currentState == SolverState::DONE) {
             cout << "\nFound: " << (*solutions.rbegin()).getFormula().toString() << endl;
+            print();
             exit(0);
         }
     }
 
     void print() {
-        cout.width(70);
+        cout.width(FORMULA_WIDTH);
         cout << left << "Formula:";
-        cout.width(9);
-        cout << left << "Rate:" << endl;
+        cout.width(RATE_WIDTH);
+        cout << right << "Rate:" << endl;
         cout.width(0);
-        for (auto solution: solutions) {
-            cout.width(70);
-            cout << left << solution.getFormula().toString();
-            cout.width(9);
-            cout << right << fixed << setprecision(7) << solution.getRate() << endl;
+        short counter = 0;
+        for (auto revIt = solutions.rbegin(); revIt != solutions.rend() && counter < NUMBER_OF_RESULTS; revIt++) {
+            cout.width(FORMULA_WIDTH);
+            cout << left << revIt->getFormula().toString();
+            cout.width(RATE_WIDTH);
+            cout << right << fixed << setprecision(7) << revIt->getRate() << endl;
+            ++counter;
         }
     }
 
@@ -131,7 +126,7 @@ private:
     void work() {
         while (currentState == SolverState::RUNNING) {
             auto changer = pickChanger();
-            auto bestSolutionIt = solutions.begin();
+            auto bestSolutionIt = solutions.rbegin();
             auto bestFormula = (*bestSolutionIt).getFormula();
             number rate;
             if (changer == nullptr) {
