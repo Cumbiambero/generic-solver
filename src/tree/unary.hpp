@@ -6,10 +6,7 @@
 enum class UnaryOperationType {
     SIN,
     COS,
-    ARC_SIN,
-    ARC_COS,
     TAN,
-    ARC_TAN,
     SQUARE,
     CUBE,
     SQUARE_ROOT,
@@ -21,8 +18,7 @@ enum class UnaryOperationType {
     EXP
 };
 static vector<UnaryOperationType> UNARY_OPERATIONS(
-        {UnaryOperationType::SIN, UnaryOperationType::COS, UnaryOperationType::ARC_SIN, UnaryOperationType::ARC_COS,
-         UnaryOperationType::TAN, UnaryOperationType::ARC_TAN, UnaryOperationType::SQUARE, UnaryOperationType::CUBE,
+        {UnaryOperationType::SIN, UnaryOperationType::COS, UnaryOperationType::SQUARE, UnaryOperationType::CUBE,
          UnaryOperationType::SQUARE_ROOT, UnaryOperationType::SQUARE_ROOT_NEG, UnaryOperationType::CUBE_ROOT,
          UnaryOperationType::LOG, UnaryOperationType::LOG_10,
          UnaryOperationType::LOG_2, UnaryOperationType::EXP});
@@ -76,28 +72,12 @@ public:
     number calculate() override { return cos(operand->calculate()); };
 };
 
-class ArcCosine : public UnaryOperation {
-public:
-    template<typename O>
-    explicit ArcCosine(const O &operand) : UnaryOperation("acos", operand) {}
-
-    number calculate() override { return acos(operand->calculate()); };
-};
-
 class Tangent : public UnaryOperation {
 public:
     template<typename O>
     explicit Tangent(const O &operand) : UnaryOperation("tan", operand) {}
 
     number calculate() override { return tan(operand->calculate()); };
-};
-
-class ArcTangent : public UnaryOperation {
-public:
-    template<typename O>
-    explicit ArcTangent(const O &operand) : UnaryOperation("atan", operand) {}
-
-    number calculate() override { return atan(operand->calculate()); };
 };
 
 class Square : public UnaryOperation {

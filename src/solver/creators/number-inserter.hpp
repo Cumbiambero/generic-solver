@@ -8,17 +8,31 @@ public:
     NumberInserter() : Creator() {}
 
     template<typename C, typename N>
-    explicit NumberInserter(C &coin, N &randomNumber) : Creator(coin,randomNumber) {}
+    explicit NumberInserter(C &coin, N &randomNumber) : Creator(coin, randomNumber) {}
 
     Formula change(const Formula &formula) override {
-        auto one = shared_ptr<Node>(new Number(1));
-        auto node = operationProducer->createBinaryOperation(formula.getRoot(), one);
+        auto node = operationProducer->createBinaryOperation(formula.getRoot(), createNumberOrConstant());
         Formula result(node, formula.getVariables());
         return result;
     }
 
     ChangerType getType() override {
         return ChangerType::NUMBER_INSERTER;
+    }
+
+private:
+    [[nodiscard]] shared_ptr<Node> createNumberOrConstant() const {
+        return shared_ptr<Node>(new Number(1));
+        /* TODO: enable this or something similar
+        if (coin->toss()) {
+            return shared_ptr<Node>(new Number(1));
+        } else {
+            if(coin->toss()) {
+                return shared_ptr<Node>(new Pi());
+            }
+            return shared_ptr<Node>(new Euler());
+        }
+        */
     }
 };
 
