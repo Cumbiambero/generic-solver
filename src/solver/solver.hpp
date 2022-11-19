@@ -122,6 +122,19 @@ public:
         return currentState;
     }
 
+    void shrink() {
+        auto size = solutions.size();
+        if (solutions.size() > SOLUTIONS_SIZE) {
+            auto rBegin = solutions.rbegin();
+            auto rEnd = solutions.rend();
+            advance(rBegin, SOLUTIONS_SIZE);
+            auto from = --rBegin.base();
+            auto to = --rEnd.base();
+            solutions.erase(from, to);
+        }
+        cout << solutions.size() - size << " solutions deleted.\n";
+    }
+
 private:
     const vector<Variable> variables;
     const vector<vector<number>> input;
