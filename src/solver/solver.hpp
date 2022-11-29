@@ -62,7 +62,7 @@ public:
                         if (divisor != 0) {
                             auto increment = abs(dividend / divisor);
                             if (increment != 0) {
-                                result += increment < 1 && increment > 0 ? 1 - increment : 1 / increment;
+                                result += increment < 1.0 && increment > 0 ? 1.0 - increment : 1.0 / increment;
                                 continue;
                             }
                         }
@@ -72,7 +72,7 @@ public:
             }
         }
         result /= records;
-        return result == 0 ? 0 : 1 - abs(1 - result);
+        return result == 0 ? 0.0 : abs(1.0 - result);
     }
 };
 
@@ -156,7 +156,8 @@ private:
             auto bestFormula = (*reverseIterator).getFormula();
             number rate;
             if (changer == nullptr) {
-                advance(reverseIterator, merger.getCoin()->toss() ? 1 : solutions.size() / 2);
+                auto shift = merger.getCoin()->toss() ? 1 : solutions.size() / 2;
+                advance(reverseIterator, shift);
                 auto existingFormula = (*reverseIterator).getFormula();
                 auto formula = merger.merge(bestFormula, existingFormula);
                 rate = storeSolution(ChangerType::MERGER, formula);
