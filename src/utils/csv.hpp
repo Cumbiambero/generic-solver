@@ -22,7 +22,7 @@ using namespace std;
         }
         for (string value; getline(ss, value, CSV_DELIMITER);) {
             try {
-                row.push_back(stoi(value));
+                row.push_back(stod(value));
             } catch (...) {
                 throw invalid_argument("Incorrect content detected: " + value);
             }
