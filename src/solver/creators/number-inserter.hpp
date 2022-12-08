@@ -22,17 +22,14 @@ public:
 
 private:
     [[nodiscard]] shared_ptr<Node> createNumberOrConstant() const {
-        return shared_ptr<Node>(new Number(1));
-        /* TODO: enable this or something similar
-        if (coin->toss()) {
+        if (operationProducer->getRandomNumber()->calculate(0, 10) < 8) {
             return shared_ptr<Node>(new Number(1));
         } else {
-            if(coin->toss()) {
+            if (coin->toss()) {
                 return shared_ptr<Node>(new Pi());
             }
             return shared_ptr<Node>(new Euler());
         }
-        */
     }
 };
 
