@@ -4,7 +4,7 @@
 
 #include "../src/utils/arbitrary.hpp"
 #include "../src/solver/formula.hpp"
-#include "doctest/doctest.h" // Ubuntu: sudo apt-get install doctest or download from https://github.com/doctest/doctest
+#include "doctest/doctest.h" // Ubuntu: sudo apt-get install doctest-dev or from https://github.com/doctest/doctest
 
 string format(number value) {
     ostringstream oss;
