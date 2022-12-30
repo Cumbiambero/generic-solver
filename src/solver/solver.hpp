@@ -24,9 +24,7 @@ public:
     bool operator>=(const Solution &other) const { return rate >= other.rate; }
 
     bool operator==(const Solution &other) const {
-        return lastChanger == other.lastChanger &&
-               rate == other.rate &&
-               formula.toString() == other.formula.toString();
+        return formula.toString() == other.formula.toString();
     }
 
     bool operator!=(const Solution &other) const { return !(other == *this); }
@@ -56,7 +54,7 @@ public:
                 if (expectedResult == currentResult) {
                     ++result;
                 } else {
-                    number increment = 0;
+                    number increment;
                     auto absCurrent = abs(currentResult);
                     auto absExpected = abs(expectedResult);
 
@@ -157,7 +155,7 @@ private:
             auto bestFormula = (*reverseIterator).getFormula();
             number rate;
             if (changer == nullptr) {
-                auto shift = merger.getCoin()->toss() ? 1 : solutions.size() / 2;
+                auto shift = merger.getCoin()->toss() ? 1 : solutions.size() >> 1;
                 advance(reverseIterator, shift);
                 auto existingFormula = (*reverseIterator).getFormula();
                 auto formula = merger.merge(bestFormula, existingFormula);
