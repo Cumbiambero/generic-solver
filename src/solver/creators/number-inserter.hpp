@@ -21,14 +21,17 @@ public:
     }
 
 private:
+    shared_ptr<Node> pi = shared_ptr<Node>(new Pi());
+    shared_ptr<Node> e = shared_ptr<Node>(new Euler());
+
     [[nodiscard]] shared_ptr<Node> createNumberOrConstant() const {
         if (operationProducer->getRandomNumber()->calculate(0, 10) < 8) {
             return shared_ptr<Node>(new Number(1));
         } else {
             if (coin->toss()) {
-                return shared_ptr<Node>(new Pi());
+                return pi;
             }
-            return shared_ptr<Node>(new Euler());
+            return e;
         }
     }
 };

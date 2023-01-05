@@ -152,16 +152,16 @@ private:
         while (currentState == SolverState::RUNNING) {
             auto changer = pickChanger();
             auto reverseIterator = solutions.rbegin();
-            auto bestFormula = (*reverseIterator).getFormula();
+            auto bestFormula = Formula((*reverseIterator).getFormula());
+            auto shift = merger.getCoin()->toss() ? 1 : solutions.size() >> 1;
+            advance(reverseIterator, shift);
+            auto existingFormula = Formula((*reverseIterator).getFormula());
             number rate;
             if (changer == nullptr) {
-                auto shift = merger.getCoin()->toss() ? 1 : solutions.size() >> 1;
-                advance(reverseIterator, shift);
-                auto existingFormula = (*reverseIterator).getFormula();
                 auto formula = merger.merge(bestFormula, existingFormula);
                 rate = storeSolution(ChangerType::MERGER, formula);
             } else {
-                auto formula = changer->change(bestFormula);
+                auto formula = changer->change(merger.getCoin()->toss() ? bestFormula : existingFormula);
                 rate = storeSolution(changer->getType(), formula);
             }
             if (rate > ALMOST_PERFECT) {

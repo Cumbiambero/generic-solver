@@ -7,7 +7,7 @@ TEST_CASE("OperationProducer") {
     vector<Variable> vec;
     vec.push_back(x);
     auto node = operationProducer.produce(vec);
-    CHECK(node->toString() == "(x)³");
+    CHECK(node->toString() == "√(x)");
 
     Variable y("y");
     vec.push_back(y);

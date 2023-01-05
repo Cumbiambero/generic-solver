@@ -30,6 +30,9 @@ public:
     }
 };
 
+static Pi PI;
+static Euler E;
+
 TestCoin testCoin;
 TestRandomNumber testRandomNumber;
 

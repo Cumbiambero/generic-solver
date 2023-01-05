@@ -13,3 +13,18 @@ TEST_CASE("Flipper") {
     flipper.change(formula);
     CHECK(formula.toString() == "((4/x)^((e*∛(x))+tan(3)))");
 }
+
+TEST_CASE("Flipper Immutability") {
+    Variable a("a", 1);
+    Multiplication multiplication(SquareRoot(a), Number(8));
+    Addition addition(multiplication, Number(3));
+    Formula formula(addition, a);
+    CHECK(formula.toString() == "((√(a)*8)+3)");
+
+    Flipper flipper(testCoin);
+    Formula copy(formula);
+    flipper.change(copy);
+
+    CHECK(formula.toString() == "((√(a)*8)+3)");
+    CHECK(copy.toString() == "((√(a)*8)+3)");
+}

@@ -20,6 +20,7 @@ public:
         init(vars);
     }
 
+    // TODO: Fix copy constructor! It is not correctly implemented yet
     Formula(const Formula &copy)
             : constants(copy.constants),
               binaryOperators(copy.binaryOperators),
@@ -56,9 +57,9 @@ public:
 
     [[nodiscard]] string toString() const { return root->toString(); }
 
-    [[nodiscard]] shared_ptr <Node> &getRoot() { return root; }
+    [[nodiscard]] shared_ptr<Node> &getRoot() { return root; }
 
-    [[nodiscard]] shared_ptr <Node> getRoot() const { return root; }
+    [[nodiscard]] shared_ptr<Node> getRoot() const { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
@@ -91,7 +92,7 @@ private:
     vector<Number *> numbers;
     map<size_t, Variable *> variablePositions;
     map<string, Variable *> variableNames;
-    shared_ptr <Node> root;
+    shared_ptr<Node> root;
 
     void init(const vector<Variable> &vars) {
         variableNames.clear();
@@ -103,7 +104,7 @@ private:
         }
     }
 
-    void traverse(const shared_ptr <Node> &current) {
+    void traverse(const shared_ptr<Node> &current) {
         auto *binary = dynamic_cast<BinaryOperation *>(current.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(current.get());
