@@ -57,9 +57,7 @@ public:
 
     [[nodiscard]] string toString() const { return root->toString(); }
 
-    [[nodiscard]] shared_ptr <Node> &getRoot() { return root; }
-
-    [[nodiscard]] shared_ptr <Node> getRoot() const { return root; }
+    [[nodiscard]] shared_ptr<Node> &getRoot() { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
@@ -87,7 +85,7 @@ private:
     map<size_t, Variable *> variablePositions;
     map<string, Variable *> variableNames;
     vector<Variable> variables;
-    shared_ptr <Node> root;
+    shared_ptr<Node> root;
 
     void init(const vector<Variable> &vars) {
         variableNames.clear();
@@ -99,7 +97,7 @@ private:
         }
     }
 
-    void traverse(const shared_ptr <Node> &current) {
+    void traverse(const shared_ptr<Node> &current) {
         auto *binary = dynamic_cast<BinaryOperation *>(current.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(current.get());
@@ -126,121 +124,118 @@ private:
         }
 
         traverse(binary->getLeft());
-        binaryOperators.push_back(binary);
         traverse(binary->getRight());
+        binaryOperators.push_back(binary);
     }
 
-    shared_ptr <Node> createCopy(shared_ptr <Node> original) {
+    shared_ptr<Node> createCopy(shared_ptr<Node> original) {
         auto *binary = dynamic_cast<BinaryOperation *>(original.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(original.get());
             if (unary != nullptr) {
-                unary->setOperand(createCopy(unary->getOperand()));
                 auto *cosine = dynamic_cast<Cosine *>(original.get());
                 if (cosine != nullptr) {
-                    return shared_ptr<Cosine>(new Cosine(*cosine));
+                    return make_shared<Cosine>(createCopy(cosine->getOperand()));
                 }
                 auto *cube = dynamic_cast<Cube *>(original.get());
                 if (cube != nullptr) {
-                    return shared_ptr<Cube>(new Cube(*cube));
+                    return make_shared<Cube>(createCopy(cube->getOperand()));
                 }
                 auto *cubeRoot = dynamic_cast<CubeRoot *>(original.get());
                 if (cubeRoot != nullptr) {
-                    return shared_ptr<CubeRoot>(new CubeRoot(*cubeRoot));
+                    return make_shared<CubeRoot>(createCopy(cubeRoot->getOperand()));
                 }
                 auto *exponentiation = dynamic_cast<Exponentiation *>(original.get());
                 if (exponentiation != nullptr) {
-                    return shared_ptr<Exponentiation>(new Exponentiation(*exponentiation));
+                    return make_shared<Exponentiation>(createCopy(exponentiation->getOperand()));
                 }
                 auto *logarithmBinary = dynamic_cast<LogarithmBinary *>(original.get());
                 if (logarithmBinary != nullptr) {
-                    return shared_ptr<LogarithmBinary>(new LogarithmBinary(*logarithmBinary));
+                    return make_shared<LogarithmBinary>(createCopy(logarithmBinary->getOperand()));
                 }
                 auto *logarithmCommon = dynamic_cast<LogarithmCommon *>(original.get());
                 if (logarithmCommon != nullptr) {
-                    return shared_ptr<LogarithmCommon>(new LogarithmCommon(*logarithmCommon));
+                    return make_shared<LogarithmCommon>(createCopy(logarithmCommon->getOperand()));
                 }
                 auto *logarithmNatural = dynamic_cast<LogarithmNatural *>(original.get());
                 if (logarithmNatural != nullptr) {
-                    return shared_ptr<LogarithmNatural>(new LogarithmNatural(*logarithmNatural));
+                    return make_shared<LogarithmNatural>(createCopy(logarithmNatural->getOperand()));
                 }
                 auto *sine = dynamic_cast<Sine *>(original.get());
                 if (sine != nullptr) {
-                    return shared_ptr<Sine>(new Sine(*sine));
+                    return make_shared<Sine>(createCopy(sine->getOperand()));
                 }
                 auto *square = dynamic_cast<Square *>(original.get());
                 if (square != nullptr) {
-                    return shared_ptr<Square>(new Square(*square));
+                    return make_shared<Square>(createCopy(square->getOperand()));
                 }
                 auto *squareRoot = dynamic_cast<SquareRoot *>(original.get());
                 if (squareRoot != nullptr) {
-                    return shared_ptr<SquareRoot>(new SquareRoot(*squareRoot));
+                    return make_shared<SquareRoot>(createCopy(squareRoot->getOperand()));
                 }
                 auto *squareRootNegative = dynamic_cast<SquareRootNegative *>(original.get());
                 if (squareRootNegative != nullptr) {
-                    return shared_ptr<SquareRootNegative>(new SquareRootNegative(*squareRootNegative));
+                    return make_shared<SquareRootNegative>(createCopy(squareRootNegative->getOperand()));
                 }
                 auto *tangent = dynamic_cast<Tangent *>(original.get());
                 if (tangent != nullptr) {
-                    return shared_ptr<Tangent>(new Tangent(*tangent));
+                    return make_shared<Tangent>(createCopy(tangent->getOperand()));
                 }
             }
             auto *constant = dynamic_cast<Constant *>(original.get());
             if (constant != nullptr) {
-                Constant *constantCopy = new Constant(*constant);
-                constants.insert(constantCopy);
-                return shared_ptr<Constant>(constantCopy);
+                auto copy = shared_ptr(original);
+                constants.insert(constant);
+                return copy;
             }
             auto *variable = dynamic_cast<Variable *>(original.get());
             if (variable != nullptr) {
-                Variable *variableCopy = new Variable(*variable);
-                variableNames[variableCopy->toString()] = variableCopy;
-                return shared_ptr<Variable>(variableCopy);
+                auto variableName = variable->toString();
+                auto variableCopy = make_shared<Variable>(variableName);
+                variableNames[variableName] = variableCopy.get();
+                return variableCopy;
             }
             auto *number = dynamic_cast<Number *>(original.get());
-            if (number != nullptr && variable == nullptr) {
-                Number *numberCopy = new Number(*number);
-                numbers.push_back(numberCopy);
-                return shared_ptr<Number>(numberCopy);
+            if (number != nullptr) {
+                auto copy = make_shared<Number>(number->calculate());
+                numbers.push_back(copy.get());
+                return copy;
             }
             auto *wrapper = dynamic_cast<Wrapper *>(original.get());
             if (wrapper != nullptr) {
-                Wrapper *wrapperCopy = new Wrapper(*wrapper);
-                wrapperCopy->setNode(createCopy(wrapper->getNode()));
-                return shared_ptr<Wrapper>(wrapperCopy);
+                return make_shared<Wrapper>(createCopy(wrapper->getNode()));
             }
         }
-        binary->setLeft(createCopy(binary->getLeft()));
-        binary->setRight(createCopy(binary->getRight()));
+
         auto *addition = dynamic_cast<Addition *>(original.get());
         if (addition != nullptr) {
-            auto additionCopy = new Addition(*addition);
-            binaryOperators.push_back(additionCopy);
-            return shared_ptr<Addition>(additionCopy);
+            auto copy = make_shared<Addition>(createCopy(addition->getLeft()), createCopy(addition->getRight()));
+            binaryOperators.push_back(copy.get());
+            return copy;
         }
         auto *division = dynamic_cast<Division *>(original.get());
         if (division != nullptr) {
-            auto divisionCopy = new Division(*division);
-            binaryOperators.push_back(divisionCopy);
-            return shared_ptr<Division>(divisionCopy);
+            auto copy = make_shared<Division>(createCopy(division->getLeft()), createCopy(division->getRight()));
+            binaryOperators.push_back(copy.get());
+            return copy;
         }
-        auto *multiplication = dynamic_cast<Multiplication *>(original.get());
-        if (multiplication != nullptr) {
-            auto multiplicationCopy = new Multiplication(*multiplication);
-            binaryOperators.push_back(multiplicationCopy);
-            return shared_ptr<Multiplication>(multiplicationCopy);
+        auto *mult = dynamic_cast<Multiplication *>(original.get());
+        if (mult != nullptr) {
+            auto copy = make_shared<Multiplication>(createCopy(mult->getLeft()), createCopy(mult->getRight()));
+            binaryOperators.push_back(copy.get());
+            return copy;
         }
         auto *power = dynamic_cast<Power *>(original.get());
         if (power != nullptr) {
-            auto powerCopy = new Power(*power);
-            binaryOperators.push_back(powerCopy);
-            return shared_ptr<Power>(powerCopy);
+            auto copy = make_shared<Power>(createCopy(power->getLeft()), createCopy(power->getRight()));
+            binaryOperators.push_back(copy.get());
+            return copy;
         }
-        auto *subtraction = dynamic_cast<Subtraction *>(original.get());
-        if (subtraction != nullptr) {
-            auto subtractionCopy = new Subtraction(*subtraction);
-            binaryOperators.push_back(subtractionCopy);
-            return shared_ptr<Subtraction>(subtractionCopy);
+        auto *sub = dynamic_cast<Subtraction *>(original.get());
+        if (sub != nullptr) {
+            auto copy = make_shared<Subtraction>(createCopy(sub->getLeft()), createCopy(sub->getRight()));
+            binaryOperators.push_back(copy.get());
+            return copy;
         }
         return original;
     }
