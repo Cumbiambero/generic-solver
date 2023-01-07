@@ -43,6 +43,10 @@ public:
 
     shared_ptr<Node> &getOperand() { return operand; }
 
+    void setOperand(const shared_ptr<Node> &operand) {
+        this->operand = operand;
+    }
+
 protected:
     shared_ptr<Node> operand;
     const string symbol;
@@ -54,14 +58,6 @@ public:
     explicit Sine(const O &operand) : UnaryOperation("sin", operand) {}
 
     number calculate() override { return sin(operand->calculate()); };
-};
-
-class ArcSine : public UnaryOperation {
-public:
-    template<typename O>
-    explicit ArcSine(const O &operand) : UnaryOperation("asin", operand) {}
-
-    number calculate() override { return asin(operand->calculate()); };
 };
 
 class Cosine : public UnaryOperation {
