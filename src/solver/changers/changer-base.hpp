@@ -23,7 +23,7 @@ public:
 
     virtual ~Changer() = default;
 
-    virtual Formula change(const Formula &formula) = 0;
+    virtual Formula change(Formula &formula) = 0;
 
     virtual ChangerType getType() = 0;
 

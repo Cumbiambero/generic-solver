@@ -12,9 +12,8 @@ public:
     template<typename C>
     explicit ReducerByFragment(C &coin) : Changer(coin) {}
 
-    Formula change(const Formula &formula) override {
-        Formula result(formula);
-        for (auto val: result.getNumbers()) {
+    Formula change(Formula &formula) override {
+        for (auto val: formula.getNumbers()) {
             number current = val->calculate();
             if (coin->toss()) {
                 int exponent;
@@ -26,7 +25,7 @@ public:
                 val->setValue(ldexp(mantissa, exponent));
             }
         }
-        return result;
+        return formula;
     }
 
     ChangerType getType() override {
