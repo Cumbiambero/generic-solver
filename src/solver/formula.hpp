@@ -15,7 +15,7 @@ public:
     Formula(N &node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
 
     template<typename N>
-    Formula(N &node, const vector<Variable> variables)
+    Formula(N &node, const vector<Variable>& variables)
             : variables(variables), root(make_shared<Wrapper>(Wrapper(node))) {
         init(variables);
     }
@@ -24,8 +24,7 @@ public:
             : variables(copy.variables),
               root(createCopy(copy.root)) {
         for (size_t i = 0; i < variables.size(); i++) {
-            Variable variable = variables[i];
-            variablePositions[i] = variableNames[variable.toString()];
+            variablePositions[i] = variableNames[variables[i].toString()];
         }
     }
 

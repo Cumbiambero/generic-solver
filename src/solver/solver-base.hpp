@@ -19,12 +19,6 @@ public:
         init();
     }
 
-    template<typename C, typename N>
-    explicit
-    ChangerPicker(C coin, N &randomNumber) : coin(make_shared<C>(coin)), randomNumber(make_shared<N>(randomNumber)) {
-        init();
-    }
-
     Changer *pickChanger(const ChangerType changerType) {
         return coin->toss() ? changers[changerType].get() : pickRandomChanger();
     }
