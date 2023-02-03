@@ -26,6 +26,10 @@ static vector<UnaryOperationType> UNARY_OPERATIONS(
 
 class UnaryOperation : public Node {
 public:
+
+    UnaryOperation(string symbol, std::shared_ptr<Node> operand)
+    : symbol(std::move(symbol)), operand(std::move(operand)) {}
+
     template<typename O>
     UnaryOperation(string symbol, const O &operand)
             : symbol(std::move(symbol)), operand(make_shared<O>(operand)) {}
@@ -39,9 +43,7 @@ public:
 
     number calculate() override = 0;
 
-    shared_ptr<Node> getOperand() { return operand; }
-
-    void setOperand(shared_ptr<Node> node) { operand = std::move(node); }
+    shared_ptr<Node>& getOperand() { return operand; }
 
 protected:
     shared_ptr<Node> operand;

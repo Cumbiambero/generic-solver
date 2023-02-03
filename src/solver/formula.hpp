@@ -47,7 +47,7 @@ public:
 
     string toString() { return root->toString(); }
 
-    shared_ptr<Node> getRoot() { return root; }
+    shared_ptr<Node>& getRoot() { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
@@ -55,12 +55,17 @@ public:
 
     vector<Variable> &getVariables() { return variables; }
 
+    vector<Number*> getNumbers() {
+        return this->numbers;
+    }
+
 private:
     mutex lock;
     set<Constant *> constants;
     vector<UnaryOperation *> unaryOperators;
     vector<BinaryOperation *> binaryOperators;
     vector<Variable> variables;
+    vector<Number*> numbers;
     map<size_t, vector<Variable *>> variablePositions;
     map<string, vector<Variable *>> variableNames;
     shared_ptr<Node> root;
@@ -89,6 +94,10 @@ private:
             auto *variable = dynamic_cast<Variable *>(current.get());
             if (variable != nullptr) {
                 variableNames[variable->toString()].push_back(variable);
+            }
+            auto *number = dynamic_cast<Number *>(current.get());
+            if (number != nullptr && variable == nullptr) {
+                numbers.push_back(number);
             }
             auto *wrapper = dynamic_cast<Wrapper *>(current.get());
             if (wrapper != nullptr) {

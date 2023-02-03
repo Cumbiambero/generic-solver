@@ -10,7 +10,7 @@ public:
     template<typename N>
     explicit OperationProducer(N &randomNumber) : randomNumber(make_shared<N>(randomNumber)) {}
 
-    shared_ptr<Node> produce(const vector<Variable>& params) {
+    shared_ptr<Node> produce(const vector<Variable> &params) {
         size_t size = params.size();
         if (size == 1) {
             return createUnaryOperation(params);
@@ -22,38 +22,8 @@ public:
         return nullptr;
     }
 
-    template<typename L, typename R>
-    shared_ptr<Node> combineAsBinaryOperation(const L& left, const R& right) {
-        switch (pickRandomBinaryOperationType()) {
-            case ADD:
-                return make_shared<Addition>(Addition(left, right));
-            case SUB:
-                return make_shared<Subtraction>(Subtraction(left, right));
-            case MULT:
-                return make_shared<Multiplication>(Multiplication(left, right));
-            case DIV:
-                return make_shared<Division>(Division(left, right));
-            case POW:
-                return make_shared<Power>(Power(left, right));
-            case HYP:
-                return make_shared<Hypotenuse>(Hypotenuse(left, right));
-        }
-        return nullptr;
-    }
-
-private:
-    shared_ptr<RandomNumber> randomNumber;
-
-    UnaryOperationType pickRandomUnaryOperationType() {
-        return UNARY_OPERATIONS[randomNumber->calculate(0, UNARY_OPERATIONS.size() - 1)];
-    }
-
-    BinaryOperationType pickRandomBinaryOperationType() {
-        return BINARY_OPERATIONS[randomNumber->calculate(0, BINARY_OPERATIONS.size() - 1)];
-    }
-
-    shared_ptr<Node> createUnaryOperation(vector<Variable> params) {
-        decltype((params[0])) operand = params[0];
+    template<typename O>
+    shared_ptr<Node> createUnaryOperation(const O& operand) {
         switch (pickRandomUnaryOperationType()) {
             case SIN:
                 return make_shared<Sine>(Sine(operand));
@@ -89,10 +59,45 @@ private:
         return nullptr;
     }
 
+    template<typename L, typename R>
+    shared_ptr<Node> createBinaryOperation(const L& left, const R& right) {
+        switch (pickRandomBinaryOperationType()) {
+            case ADD:
+                return make_shared<Addition>(Addition(left, right));
+            case SUB:
+                return make_shared<Subtraction>(Subtraction(left, right));
+            case MUL:
+                return make_shared<Multiplication>(Multiplication(left, right));
+            case DIV:
+                return make_shared<Division>(Division(left, right));
+            case POW:
+                return make_shared<Power>(Power(left, right));
+            case HYP:
+                return make_shared<Hypotenuse>(Hypotenuse(left, right));
+        }
+        return nullptr;
+    }
+
+private:
+    shared_ptr<RandomNumber> randomNumber;
+
+    UnaryOperationType pickRandomUnaryOperationType() {
+        return UNARY_OPERATIONS[randomNumber->calculate(0, UNARY_OPERATIONS.size() - 1)];
+    }
+
+    BinaryOperationType pickRandomBinaryOperationType() {
+        return BINARY_OPERATIONS[randomNumber->calculate(0, BINARY_OPERATIONS.size() - 1)];
+    }
+
+    shared_ptr<Node> createUnaryOperation(vector<Variable> params) {
+        decltype((params[0])) operand = params[0];
+        return createUnaryOperation(operand);
+    }
+
     shared_ptr<Node> createBinaryOperation(vector<Variable> params) {
         decltype((params[0])) left = params[0];
         decltype((params[1])) right = params[1];
-        return combineAsBinaryOperation(left, right);
+        return createBinaryOperation(left, right);
     }
 
     shared_ptr<Node> createMultipleBinaryOperations(const vector<Variable> &params, size_t size) {
@@ -108,7 +113,7 @@ private:
         operators.pop_back();
 
         while (!operators.empty()) {
-            result = combineAsBinaryOperation(operators.back(), result);
+            result = createBinaryOperation(operators.back(), result);
             operators.pop_back();
         }
         return result;
