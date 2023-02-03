@@ -10,14 +10,13 @@ public:
     template<typename C>
     explicit IncrementorByOne(C &coin) : Changer(coin) {}
 
-    Formula change(const Formula &formula) override {
-        Formula result(formula);
-        for (auto val: result.getNumbers()) {
+    Formula change(Formula &formula) override {
+        for (auto val: formula.getNumbers()) {
             if (coin->toss()) {
                 val->setValue(val->calculate() + 1);
             }
         }
-        return result;
+        return formula;
     }
 
     ChangerType getType() override {

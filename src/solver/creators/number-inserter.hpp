@@ -10,7 +10,7 @@ public:
     template<typename C, typename N>
     explicit NumberInserter(C &coin, N &randomNumber) : Creator(coin, randomNumber) {}
 
-    Formula change(const Formula &formula) override {
+    Formula change(Formula &formula) override {
         auto node = operationProducer->createBinaryOperation(formula.getRoot(), createNumberOrConstant());
         Formula result(node, formula.getVariables());
         return result;

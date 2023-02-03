@@ -15,20 +15,16 @@ public:
     Formula(N &node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
 
     template<typename N>
-    Formula(N &node, const vector<Variable> &variables)
-            : root(make_shared<Wrapper>(Wrapper(node))) {
+    Formula(N &node, const vector<Variable> variables)
+            : variables(variables), root(make_shared<Wrapper>(Wrapper(node))) {
         init(variables);
     }
 
     Formula(const Formula &copy)
-            : root(createCopy(copy.root)) {
-        std::vector<Variable> variables;
-        for (size_t i = 0; i < variablePositions.size(); i++) {
-            Variable variable(variablePositions.at(i)->toString());
-            variables.push_back(variable);
-        }
+            : variables(copy.variables),
+              root(createCopy(copy.root)) {
         for (size_t i = 0; i < variables.size(); i++) {
-            Variable variable(variables[i]);
+            Variable variable = variables[i];
             variablePositions[i] = variableNames[variable.toString()];
         }
     }
@@ -68,12 +64,6 @@ public:
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
     [[nodiscard]] vector<Variable> getVariables() const {
-        std::vector<Variable> variables;
-        if (!variableNames.empty()) {
-            for (const auto &[_, value]: variableNames) {
-                variables.push_back(*value);
-            }
-        }
         return variables;
     }
 
@@ -96,6 +86,7 @@ private:
     vector<Number *> numbers;
     map<size_t, Variable *> variablePositions;
     map<string, Variable *> variableNames;
+    vector<Variable> variables;
     shared_ptr <Node> root;
 
     void init(const vector<Variable> &vars) {

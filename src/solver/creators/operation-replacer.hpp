@@ -10,7 +10,7 @@ public:
     template<typename C, typename N>
     explicit OperationReplacer(C &coin, N &randomNumber) : Creator(coin, randomNumber) {}
 
-    Formula change(const Formula &formula) override {
+    Formula change(Formula &formula) override {
         Formula result(formula);
         traverse(result.getRoot());
         return result;

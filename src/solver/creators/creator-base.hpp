@@ -14,7 +14,7 @@ public:
 
     ~Creator() override = default;
 
-    Formula change(const Formula &formula) override = 0;
+    Formula change(Formula &formula) override = 0;
 
     ChangerType getType() override = 0;
 

@@ -10,16 +10,15 @@ public:
     template<typename C>
     explicit Flipper(C &coin) : Changer(coin) {}
 
-    Formula change(const Formula &formula) override {
-        Formula result(formula);
-        for (auto binary: result.getBinaryOperators()) {
+    Formula change(Formula &formula) override {
+        for (auto binary: formula.getBinaryOperators()) {
             if (coin->toss()) {
                 auto temp = binary->getRight();
                 binary->setRight(binary->getLeft());
                 binary->setLeft(temp);
             }
         }
-        return result;
+        return formula;
     }
 
     ChangerType getType() override {
