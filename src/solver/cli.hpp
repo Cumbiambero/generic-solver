@@ -14,7 +14,12 @@ void interactWithSolver(Solver &solver) {
                     cout << "You can use the following commands:\n"
                             "\texit\tTerminates the solver\n"
                             "\thelp\tPrints this output\n"
+                            "\tshrink\tCleans the solutions cache\n"
                             "\tprint\tPrints the best solutions\n";
+                    continue;
+                }
+                if ("shrink" == input) {
+                    solver.shrink();
                     continue;
                 }
                 if ("print" == input) {
