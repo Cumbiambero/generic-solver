@@ -4,8 +4,6 @@
 #include <filesystem>
 #include <iostream>
 
-CSVParser parser;
-
 string getPath(const string &path) {
     const filesystem::path &currentDir = std::filesystem::current_path().filename();
     if (currentDir == "test") {
@@ -22,7 +20,7 @@ string getPath(const string &path) {
 }
 
 TEST_CASE("CSV Parsing: Existing file") {
-    const vector<vector<number>> &input = parser.parse(getPath("test/resources/csv-parser-ok.csv"));
+    const vector<vector<number>> &input = parseCSV(getPath("test/resources/csv-parser-ok.csv"));
     const vector<vector<number>> expected{{1,  1},
                                           {2,  3},
                                           {5,  8},
@@ -36,10 +34,10 @@ TEST_CASE("CSV Parsing: Existing file") {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-result"
 TEST_CASE("CSV Parsing: Incorrect path") {
-    CHECK_THROWS_WITH(parser.parse("non-existing-file.csv"), "Couldn't read file: non-existing-file.csv");
+    CHECK_THROWS_WITH(parseCSV("non-existing-file.csv"), "Couldn't read file: non-existing-file.csv");
 }
 
 TEST_CASE("CSV Parsing: Incorrect content") {
-    CHECK_THROWS_WITH(parser.parse(getPath("test/resources/csv-parser-nok.csv")), "Incorrect content detected: two");
+    CHECK_THROWS_WITH(parseCSV(getPath("test/resources/csv-parser-nok.csv")), "Incorrect content detected: two");
 }
 #pragma clang diagnostic pop
