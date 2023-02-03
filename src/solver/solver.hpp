@@ -48,31 +48,32 @@ public:
     static number rate(Formula &formula, const vector<vector<number>> &input, const vector<vector<number>> &expected) {
         number result = 0;
         number records = 0;
-        for (int l = 0; l < expected.size(); l++) {
-            for (int c = 0; c < expected[l].size(); c++) {
-                records++;
+        for (auto l = 0; l < expected.size(); l++) {
+            for (auto c = 0; c < expected[l].size(); c++) {
+                ++records;
                 number currentResult = formula.evaluate(input[l][c]);
                 number expectedResult = expected[l][c];
                 if (expectedResult == currentResult) {
-                    result++;
+                    ++result;
                 } else {
-                    if (abs(expectedResult) != abs(currentResult)) {
-                        auto dividend(min(expectedResult, currentResult));
-                        auto divisor(max(expectedResult, currentResult));
-                        if (divisor != 0) {
-                            auto increment = abs(dividend / divisor);
-                            if (increment != 0) {
-                                result += increment < 1.0 && increment > 0 ? 1.0 - increment : 1.0 / increment;
-                                continue;
-                            }
-                        }
+                    number increment = 0;
+                    auto absCurrent = abs(currentResult);
+                    auto absExpected = abs(expectedResult);
+
+                    auto dividend(min(absExpected, absCurrent));
+                    auto divisor(max(absExpected, absCurrent));
+                    if (divisor == 0) {
+                        increment = dividend == 1 ? 0.5 : 1 / dividend;
+                    } else if (dividend == 0) {
+                        increment = divisor == 1 ? 0.5 : 1 / divisor;
+                    } else {
+                        increment = dividend / divisor;
                     }
-                    result += result / records;
+                    result += increment < 1 ? increment : 1 / increment;
                 }
             }
         }
-        result /= records;
-        return result == 0 ? 0.0 : abs(1.0 - result);
+        return result / records;
     }
 };
 
@@ -91,7 +92,7 @@ public:
         }
         currentState = SolverState::RUNNING;
 
-        for (int i = 0; i < cores; ++i) {
+        for (auto i = 0; i < cores; ++i) {
             thread worker([this]() { work(); });
             worker.join();
         }
