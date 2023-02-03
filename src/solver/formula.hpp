@@ -40,7 +40,12 @@ public:
         lock.lock();
         if (!variablePositions.empty() && variablePositions.size() == values.size()) {
             for (size_t i = 0; i < numberOfParams; i++) {
-                variablePositions[i]->setValue(values[i]);
+                Variable *&variable = variablePositions[i];
+                if (variable == nullptr) {
+                    lock.unlock();
+                    return 0;
+                }
+                variable->setValue(values[i]);
             }
         }
         number result = root->calculate();
