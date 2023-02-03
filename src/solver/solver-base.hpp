@@ -3,8 +3,8 @@
 
 #include "formula.hpp"
 #include "../utils/arbitrary.hpp"
-#include "creators/creators.hpp"
 #include "changers/changers.hpp"
+#include "creators/creators.hpp"
 
 enum class SolverState {
     BROKEN,
@@ -38,13 +38,11 @@ public:
 
 private:
     map<ChangerType, unique_ptr<Changer>> changers;
-    map<ChangerType, unique_ptr<Creator>> creators;
     shared_ptr<RandomNumber> randomNumber;
     shared_ptr<Coin> coin;
 
     void init() {
         initChangers();
-        initCreators();
     }
 
     void initChangers() {
@@ -55,12 +53,9 @@ private:
         changers[ChangerType::REDUCER_BY_ONE] = make_unique<ReducerByOne>();
         changers[ChangerType::REDUCER_BY_HALVING] = make_unique<ReducerByHalving>();
         changers[ChangerType::REDUCER_BY_FRAGMENT] = make_unique<ReducerByFragment>();
-    }
-
-    void initCreators() {
-        creators[ChangerType::MERGER] = make_unique<Merger>();
-        creators[ChangerType::NUMBER_INSERTER] = make_unique<NumberInserter>();
-        creators[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
+        changers[ChangerType::NUMBER_INSERTER] = make_unique<NumberInserter>();
+        changers[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
+        changers[ChangerType::MERGER] = make_unique<OperationReplacer>(); // this is intentional
     }
 };
 

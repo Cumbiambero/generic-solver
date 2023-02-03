@@ -10,8 +10,14 @@ public:
     template<typename C, typename N>
     explicit OperationReplacer(C &coin, N &randomNumber) : Creator(coin, randomNumber) {}
 
-    void replace(Formula &formula) {
-        traverse(formula.getRoot());
+    Formula change(const Formula &formula) override {
+        Formula result(formula);
+        traverse(result.getRoot());
+        return result;
+    }
+
+    ChangerType getType() override {
+        return ChangerType::OPERATION_REPLACER;
     }
 
 private:

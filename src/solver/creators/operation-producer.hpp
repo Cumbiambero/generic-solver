@@ -79,7 +79,7 @@ public:
         return nullptr;
     }
 
-    const shared_ptr<RandomNumber> &getRandomNumber() const {
+    [[nodiscard]] const shared_ptr<RandomNumber> &getRandomNumber() const {
         return randomNumber;
     }
 
@@ -87,11 +87,11 @@ private:
     shared_ptr<RandomNumber> randomNumber;
 
     UnaryOperationType pickRandomUnaryOperationType() {
-        return UNARY_OPERATIONS[randomNumber->calculate(0, UNARY_OPERATIONS.size() - 1)];
+        return UNARY_OPERATIONS[randomNumber->calculate(0, (int) UNARY_OPERATIONS.size() - 1)];
     }
 
     BinaryOperationType pickRandomBinaryOperationType() {
-        return BINARY_OPERATIONS[randomNumber->calculate(0, BINARY_OPERATIONS.size() - 1)];
+        return BINARY_OPERATIONS[randomNumber->calculate(0, (int) BINARY_OPERATIONS.size() - 1)];
     }
 
     shared_ptr<Node> createUnaryOperation(vector<Variable> params) {

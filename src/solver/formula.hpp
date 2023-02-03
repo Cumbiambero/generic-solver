@@ -51,13 +51,15 @@ public:
 
     [[nodiscard]] string toString() const { return root->toString(); }
 
-    shared_ptr <Node> &getRoot() { return root; }
+    [[nodiscard]] shared_ptr<Node>& getRoot() { return root; }
+
+    [[nodiscard]] shared_ptr<Node> getRoot() const { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
     vector<UnaryOperation *> &getUnaryOperators() { return unaryOperators; }
 
-    vector<Variable> &getVariables() { return variables; }
+    [[nodiscard]] vector<Variable> getVariables() const { return variables; }
 
     vector<Number *> getNumbers() {
         return this->numbers;

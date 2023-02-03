@@ -3,12 +3,13 @@
 
 #include "creator-base.hpp"
 
-class Merger : public Creator {
+class Merger {
 public:
-    Merger() : Creator() {}
+    Merger() : coin(make_shared<RandomCoin>()), operationProducer(make_shared<OperationProducer>()) {}
 
-    template<typename C, typename N>
-    explicit Merger(C &coin, N &randomNumber) : Creator(coin, randomNumber) {}
+    template<typename C, typename R>
+    explicit Merger(C &coin, R &randomNumber) : coin(make_shared<C>(coin)), operationProducer(
+            make_shared<OperationProducer>(OperationProducer(randomNumber))) {}
 
     Formula merge(Formula &formula1, Formula &formula2) {
         auto leftNode = traverse(formula1.getRoot());
@@ -18,7 +19,14 @@ public:
         return merged;
     }
 
+    [[nodiscard]] const shared_ptr<Coin> &getCoin() const {
+        return coin;
+    }
+
 private:
+    shared_ptr<Coin> coin;
+    shared_ptr<OperationProducer> operationProducer;
+
     shared_ptr <Node> traverse(shared_ptr <Node> node) {
         auto binary = dynamic_cast<BinaryOperation *>(node.get());
         if (binary == nullptr) {

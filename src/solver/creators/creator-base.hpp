@@ -2,8 +2,9 @@
 #define GENERIC_SOLVER_CREATORS_CREATOR_BASE_HPP
 
 #include "operation-producer.hpp"
+#include "../changers/changers.hpp"
 
-class Creator {
+class Creator : public Changer {
 public:
     Creator() : coin(make_shared<RandomCoin>()), operationProducer(make_shared<OperationProducer>()) {}
 
@@ -11,7 +12,11 @@ public:
     explicit Creator(C &coin, R &randomNumber) : coin(make_shared<C>(coin)), operationProducer(
             make_shared<OperationProducer>(OperationProducer(randomNumber))) {}
 
-    virtual ~Creator() = default;
+    ~Creator() override = default;
+
+    Formula change(const Formula &formula) override = 0;
+
+    ChangerType getType() override = 0;
 
 protected:
     shared_ptr<Coin> coin;
