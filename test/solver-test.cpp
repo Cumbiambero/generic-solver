@@ -34,5 +34,5 @@ TEST_CASE("Formula rating") {
 
     vector<vector<number>> otherResults = {{12,112,1112}};
     number badRating = Evaluator::rate(formula, input, otherResults);
-    CHECK((badRating < 0.5));
+    CHECK((badRating < 0.1));
 }
