@@ -152,10 +152,10 @@ private:
         while (currentState == SolverState::RUNNING) {
             auto changer = pickChanger();
             auto reverseIterator = solutions.rbegin();
-            auto bestFormula = Formula((*reverseIterator).getFormula());
+            Formula bestFormula((*reverseIterator).getFormula());
             auto shift = merger.getCoin()->toss() ? 1 : solutions.size() >> 1;
             advance(reverseIterator, shift);
-            auto existingFormula = Formula((*reverseIterator).getFormula());
+            Formula existingFormula((*reverseIterator).getFormula());
             number rate;
             if (changer == nullptr) {
                 auto formula = merger.merge(bestFormula, existingFormula);

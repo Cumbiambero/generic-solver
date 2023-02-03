@@ -14,7 +14,7 @@ TEST_CASE("Flipper") {
     CHECK(formula.toString() == "((4/x)^((e*∛(x))+tan(3)))");
 }
 
-TEST_CASE("Flipper Immutability") {
+TEST_CASE("Flipper immutability") {
     Variable a("a", 1);
     Multiplication multiplication(SquareRoot(a), Number(8));
     Addition addition(multiplication, Number(3));
