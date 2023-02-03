@@ -1,7 +1,6 @@
 #ifndef GENERIC_SOLVER_CREATORS_CREATOR_BASE_HPP
 #define GENERIC_SOLVER_CREATORS_CREATOR_BASE_HPP
 
-#include "../solver-base.hpp"
 #include "operation-producer.hpp"
 
 class Creator {

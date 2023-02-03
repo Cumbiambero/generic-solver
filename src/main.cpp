@@ -2,7 +2,7 @@
 
 #include "solver/solver.hpp"
 
-vector<Variable> readVariables(int argc, char *const *argv) {
+int main(int argc, char **argv) {
     if (argc < 4) {
         throw invalid_argument("Please provide 2 paths for input and result csv files followed by the variable names.");
     }
@@ -19,11 +19,7 @@ vector<Variable> readVariables(int argc, char *const *argv) {
     for(int i = 3; i < argc; ++i) {
         variables.emplace_back(argv[i]);
     }
-    return variables;
-}
-
-int main(int argc, char **argv) {
-    Solver solver(readVariables(argc, argv));
+    Solver solver(variables, input, results);
     solver.start();
     return 0;
 }
