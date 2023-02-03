@@ -24,7 +24,7 @@ public:
     }
 
     template<typename O>
-    shared_ptr<Node> createUnaryOperation(const O& operand) {
+    shared_ptr<Node> createUnaryOperation(const O &operand) {
         switch (pickRandomUnaryOperationType()) {
             case UnaryOperationType::SIN:
                 return make_shared<Sine>(Sine(operand));
@@ -61,7 +61,7 @@ public:
     }
 
     template<typename L, typename R>
-    shared_ptr<Node> createBinaryOperation(const L& left, const R& right) {
+    shared_ptr<Node> createBinaryOperation(const L &left, const R &right) {
         switch (pickRandomBinaryOperationType()) {
             case BinaryOperationType::ADD:
                 return make_shared<Addition>(Addition(left, right));
@@ -73,8 +73,6 @@ public:
                 return make_shared<Division>(Division(left, right));
             case BinaryOperationType::POW:
                 return make_shared<Power>(Power(left, right));
-            case BinaryOperationType::HYP:
-                return make_shared<Hypotenuse>(Hypotenuse(left, right));
         }
         return nullptr;
     }

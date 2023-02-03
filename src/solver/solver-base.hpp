@@ -27,7 +27,7 @@ public:
     }
 
     Changer *pickChanger(const ChangerType changerType) {
-        return changers[changerType].get();
+        return coin->toss() ? changers[changerType].get() : pickRandomChanger();
     }
 
     Changer *pickRandomChanger() {
