@@ -7,8 +7,6 @@
 #include "creators/creators.hpp"
 
 enum class SolverState {
-    BROKEN,
-    PAUSED,
     READY,
     RUNNING,
     DONE

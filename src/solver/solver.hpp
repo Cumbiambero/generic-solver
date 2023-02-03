@@ -75,7 +75,7 @@ class Solver {
 public:
     Solver(vector<Variable> variables, const vector<vector<number>> &input, const vector<vector<number>> &results)
             : variables(std::move(variables)), input(input), results(results),
-              cores(max((unsigned int) 1, thread::hardware_concurrency())),
+              cores(max((unsigned int) 1, thread::hardware_concurrency() - 1)),
               currentState(SolverState::READY) {}
 
     void start() {
@@ -87,27 +87,31 @@ public:
         currentState = SolverState::RUNNING;
 
         for (int i = 0; i < cores; ++i) {
-            thread worker([this]() {
-                while (currentState == SolverState::RUNNING) {
-                    work();
-                }
-            });
+            thread worker([this]() { work(); });
             worker.join();
         }
-        cout << (*solutions.rbegin()).getFormula().toString()
-             << endl; // TODO: maybe print more than just the best solution
+        if (currentState == SolverState::DONE) {
+            cout << "\nFound: " << (*solutions.rbegin()).getFormula().toString() << endl;
+            exit(0);
+        }
     }
 
-    void pause() {
-        currentState = SolverState::PAUSED;
+    void print() {
+        cout.width(70);
+        cout << left << "Formula:";
+        cout.width(9);
+        cout << left << "Rate:" << endl;
+        cout.width(0);
+        for (auto solution: solutions) {
+            cout.width(70);
+            cout << left << solution.getFormula().toString();
+            cout.width(9);
+            cout << right << fixed << setprecision(7) << solution.getRate() << endl;
+        }
     }
 
     [[nodiscard]] SolverState getState() const {
         return currentState;
-    }
-
-    void updateState(SolverState state) {
-        this->currentState = state;
     }
 
 private:
@@ -125,23 +129,25 @@ private:
     atomic<unsigned int> pos = 0;
 
     void work() {
-        auto changer = pickChanger();
-        auto bestSolutionIt = solutions.begin();
-        auto bestFormula = (*bestSolutionIt).getFormula();
-        number rate;
-        if (changer == nullptr) {
-            advance(bestSolutionIt, 1);
-            auto secondBestFormula = (*bestSolutionIt).getFormula();
-            auto formula = merger.merge(bestFormula, secondBestFormula);
-            rate = Evaluator::rate(formula, input, results);
-            storeSolution(ChangerType::MERGER, rate, formula);
-        } else {
-            auto formula = changer->change(bestFormula);
-            rate = Evaluator::rate(formula, input, results);
-            storeSolution(changer->getType(), rate, formula);
-        }
-        if (rate > 0.9999999999) { // TODO: make this value configurable
-            currentState = SolverState::DONE;
+        while (currentState == SolverState::RUNNING) {
+            auto changer = pickChanger();
+            auto bestSolutionIt = solutions.begin();
+            auto bestFormula = (*bestSolutionIt).getFormula();
+            number rate;
+            if (changer == nullptr) {
+                advance(bestSolutionIt, 1);
+                auto secondBestFormula = (*bestSolutionIt).getFormula();
+                auto formula = merger.merge(bestFormula, secondBestFormula);
+                rate = Evaluator::rate(formula, input, results);
+                storeSolution(ChangerType::MERGER, rate, formula);
+            } else {
+                auto formula = changer->change(bestFormula);
+                rate = Evaluator::rate(formula, input, results);
+                storeSolution(changer->getType(), rate, formula);
+            }
+            if (rate > ALMOST_PERFECT) {
+                currentState = SolverState::DONE;
+            }
         }
     }
 
