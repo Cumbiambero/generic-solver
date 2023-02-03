@@ -30,14 +30,8 @@ public:
                 return make_shared<Sine>(Sine(operand));
             case UnaryOperationType::COS:
                 return make_shared<Cosine>(Cosine(operand));
-            case UnaryOperationType::ARC_SIN:
-                return make_shared<ArcSine>(ArcSine(operand));
-            case UnaryOperationType::ARC_COS:
-                return make_shared<ArcCosine>(ArcCosine(operand));
             case UnaryOperationType::TAN:
                 return make_shared<Tangent>(Tangent(operand));
-            case UnaryOperationType::ARC_TAN:
-                return make_shared<ArcTangent>(ArcTangent(operand));
             case UnaryOperationType::SQUARE:
                 return make_shared<Square>(Square(operand));
             case UnaryOperationType::CUBE:

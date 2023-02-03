@@ -2,6 +2,7 @@
 #define GENERIC_SOLVER_TREE_BASE_HPP
 
 #include "../utils/base.hpp"
+#include "../utils/config.hpp"
 #include <cmath>
 #include <iomanip>
 #include <memory>
@@ -41,13 +42,13 @@ public:
 
     string toString() override {
         ostringstream oss;
-        oss << setprecision(8) << noshowpoint << value;
+        oss << setprecision(FORMULA_NUMBER_PRECISION) << noshowpoint << value;
         return value > 0 ? oss.str() : "(" + oss.str() + ")";
     }
 
     number calculate() override { return value; };
 
-    void setValue(number val) {
+    virtual void setValue(number val) {
         this->value = val;
     }
 
@@ -76,6 +77,8 @@ public:
 
     string toString() override { return symbol; }
 
+    void setValue(number val) override { /* empty since the value should not be changed on a constant */ }
+
 private:
     const string symbol;
 };
@@ -92,6 +95,6 @@ public:
     Euler() : Constant("e", 2.718281828459045235360287471352662498L) {}
 };
 
-static const Euler E;
+static Euler E;
 
 #endif

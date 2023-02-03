@@ -50,12 +50,25 @@ public:
         number records = 0;
         for (int l = 0; l < expected.size(); l++) {
             for (int c = 0; c < expected[l].size(); c++) {
+                records++;
                 number currentResult = formula.evaluate(input[l][c]);
                 number expectedResult = expected[l][c];
-                number dividend(min(expectedResult, currentResult));
-                number divisor(max(expectedResult, currentResult));
-                result += abs(dividend / divisor);
-                records++;
+                if (expectedResult == currentResult) {
+                    result++;
+                } else {
+                    if (abs(expectedResult) != abs(currentResult)) {
+                        auto dividend(min(expectedResult, currentResult));
+                        auto divisor(max(expectedResult, currentResult));
+                        if (divisor != 0) {
+                            auto increment = abs(dividend / divisor);
+                            if (increment != 0) {
+                                result += increment < 1 && increment > 0 ? 1 - increment : 1 / increment;
+                                continue;
+                            }
+                        }
+                    }
+                    result += result / records;
+                }
             }
         }
         result /= records;
@@ -100,7 +113,7 @@ public:
             cout.width(FORMULA_WIDTH);
             cout << left << revIt->getFormula().toString();
             cout.width(RATE_WIDTH);
-            cout << right << fixed << setprecision(7) << revIt->getRate() << endl;
+            cout << right << fixed << setprecision(RATE_PRECISION) << revIt->getRate() << endl;
             ++counter;
         }
     }
@@ -133,12 +146,10 @@ private:
                 advance(bestSolutionIt, 1);
                 auto secondBestFormula = (*bestSolutionIt).getFormula();
                 auto formula = merger.merge(bestFormula, secondBestFormula);
-                rate = Evaluator::rate(formula, input, results);
-                storeSolution(ChangerType::MERGER, rate, formula);
+                rate = storeSolution(ChangerType::MERGER, formula);
             } else {
                 auto formula = changer->change(bestFormula);
-                rate = Evaluator::rate(formula, input, results);
-                storeSolution(changer->getType(), rate, formula);
+                rate = storeSolution(changer->getType(), formula);
             }
             if (rate > ALMOST_PERFECT) {
                 currentState = SolverState::DONE;
@@ -146,10 +157,12 @@ private:
         }
     }
 
-    void storeSolution(ChangerType type, number rate, const Formula &formula) {
+    number storeSolution(ChangerType type, Formula &formula) {
         lock.lock();
+        auto rate = Evaluator::rate(formula, input, results);
         solutions.insert(Solution(formula, type, rate));
         lock.unlock();
+        return rate;
     }
 
     Changer *pickChanger() {
