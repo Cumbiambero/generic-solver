@@ -16,22 +16,20 @@ public:
     Solution(const Solution &copy) = default;
 
     bool operator<(const Solution &other) const {
-        return rate < other.rate
-               || (rate == other.rate && formula.toString() < other.getFormula().toString());
+        return compare(this, &other);
     }
 
-    bool operator>(const Solution &other) const { return rate > other.rate; }
-
-    bool operator<=(const Solution &other) const { return rate <= other.rate; }
-
-    bool operator>=(const Solution &other) const { return rate >= other.rate; }
-
-    bool operator==(const Solution &other) const {
-        return formula.toString() == other.formula.toString();
-    }
-
-    bool operator!=(const Solution &other) const {
-        return formula.toString() != other.formula.toString();
+    static bool compare(const Solution *a, const Solution *b) {
+        if (a->rate < b->rate) {
+            return true;
+        } else if (std::fabs(a->rate - b->rate) < EPSILON_FOR_RATE) {
+            auto aString = a->getFormula().toString();
+            auto bString = b->getFormula().toString();
+            if (aString != bString) {
+                return aString.size() > bString.size();
+            }
+        }
+        return false;
     }
 
     [[nodiscard]] Formula getFormula() const { return formula; }
@@ -62,7 +60,6 @@ public:
                     number increment;
                     auto absCurrent = abs(currentResult);
                     auto absExpected = abs(expectedResult);
-
                     auto dividend(min(absExpected, absCurrent));
                     auto divisor(max(absExpected, absCurrent));
                     if (divisor == 0) {
@@ -100,20 +97,26 @@ public:
             worker.join();
         }
         if (currentState == SolverState::DONE) {
-            cout << "\nFound: " << (*solutions.rbegin()).getFormula().toString() << endl;
             print();
             exit(0);
         }
     }
 
     void print() {
+        cout << "\nMatches:\n";
+        printSolutions(hallOfFame);
+        cout << "\nPrevious intentions:\n";
+        printSolutions(solutions);
+    }
+
+    static void printSolutions(set<Solution> &target, short numberOfResults = NUMBER_OF_RESULTS) {
         cout.width(FORMULA_WIDTH);
         cout << left << "Formula:";
         cout.width(RATE_WIDTH);
         cout << right << "Rate:" << endl;
         cout.width(0);
         short counter = 0;
-        for (auto revIt = solutions.rbegin(); revIt != solutions.rend() && counter < NUMBER_OF_RESULTS; revIt++) {
+        for (auto revIt = target.rbegin(); revIt != target.rend() && counter < numberOfResults; revIt++) {
             cout.width(FORMULA_WIDTH);
             cout << left << revIt->getFormula().toString();
             cout.width(RATE_WIDTH);
@@ -150,6 +153,7 @@ private:
     SolverState currentState;
 
     set<Solution> solutions;
+    set<Solution> hallOfFame;
     unsigned int cores;
     atomic<unsigned int> pos = 0;
 
@@ -161,26 +165,28 @@ private:
             auto shift = merger.getCoin()->toss() ? 1 : solutions.size() >> 1;
             advance(reverseIterator, shift);
             Formula existingFormula((*reverseIterator).getFormula());
-            number rate;
             if (changer == nullptr) {
                 auto formula = merger.merge(bestFormula, existingFormula);
-                rate = storeSolution(ChangerType::MERGER, formula);
+                storeSolution(ChangerType::MERGER, formula);
             } else {
                 auto formula = changer->change(merger.getCoin()->toss() ? bestFormula : existingFormula);
-                rate = storeSolution(changer->getType(), formula);
-            }
-            if (rate > ALMOST_PERFECT) {
-                currentState = SolverState::DONE;
+                storeSolution(changer->getType(), formula);
             }
         }
     }
 
-    number storeSolution(ChangerType type, Formula &formula) {
+    void storeSolution(ChangerType type, Formula &formula) {
         lock.lock();
         auto rate = Evaluator::rate(formula, input, results);
-        solutions.insert(Solution(formula, type, rate));
+        auto solution = Solution(formula, type, rate);
+        if (rate > ALMOST_PERFECT) {
+            hallOfFame.insert(solution);
+            if (hallOfFame.size() >= HALL_OF_FAME_SIZE) {
+                currentState = SolverState::DONE;
+            }
+        }
+        solutions.insert(solution);
         lock.unlock();
-        return rate;
     }
 
     Changer *pickChanger() {

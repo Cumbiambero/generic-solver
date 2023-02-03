@@ -7,16 +7,8 @@ TEST_CASE("Solution operators") {
     Formula formula(addition, vector<Variable>{x});
     Solution a(formula, ChangerType::FLIPPER, 0.00002);
     Solution b(formula, ChangerType::MERGER, 0.00003);
-    CHECK((a == a));
-    CHECK((b == b));
     CHECK((a < b));
-    CHECK((a <= b));
-    CHECK((b > a));
-    CHECK((b >= a));
     CHECK((!(b < a)));
-    CHECK((!(b <= a)));
-    CHECK((!(a > b)));
-    CHECK((!(a >= b)));
 }
 
 TEST_CASE("Formula rating") {

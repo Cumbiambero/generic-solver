@@ -26,7 +26,7 @@ private:
 
     [[nodiscard]] shared_ptr<Node> createNumberOrConstant() const {
         if (operationProducer->getRandomNumber()->calculate(0, 10) < 8) {
-            return shared_ptr<Node>(new Number(1));
+            return shared_ptr<Node>(new Number(1.0));
         } else {
             if (coin->toss()) {
                 return pi;
