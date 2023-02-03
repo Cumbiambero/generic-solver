@@ -12,8 +12,7 @@ int start(Solver &solver) {
 
 int main(int argc, char **argv) {
     if (argc < 4) {
-        throw invalid_argument(
-                "Please provide 2 paths for input and result csv files followed by the variable names.");
+        throw invalid_argument("Please provide 2 paths for input and result csv files followed by the variable names.");
     }
 
     const vector<vector<number>> &input = parseCSV(argv[1]);

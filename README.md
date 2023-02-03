@@ -35,4 +35,4 @@ There are some input and result files stored in the test subdirectory as demonst
 ./solver ../test/resources/input-one-to-ten.csv ../test/resources/circle-results.csv r
 ```
 
-Copyright 2022, Eduardo Hahn Paredes
+Copyright 2023, Eduardo Hahn Paredes
