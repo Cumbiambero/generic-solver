@@ -15,19 +15,23 @@ public:
     Formula(N &node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
 
     template<typename N>
-    Formula(N &node, const vector<Variable> &vars)
+    Formula(N &node, const vector<Variable> &variables)
             : root(make_shared<Wrapper>(Wrapper(node))) {
-        init(vars);
+        init(variables);
     }
 
-    // TODO: Fix copy constructor! It is not correctly implemented yet
     Formula(const Formula &copy)
-            : constants(copy.constants),
-              binaryOperators(copy.binaryOperators),
-              numbers(copy.numbers),
-              variablePositions(copy.variablePositions),
-              variableNames(copy.variableNames),
-              root(shared_ptr(copy.root)) {}
+            : root(createCopy(copy.root)) {
+        std::vector<Variable> variables;
+        for (size_t i = 0; i < variablePositions.size(); i++) {
+            Variable variable(variablePositions.at(i)->toString());
+            variables.push_back(variable);
+        }
+        for (size_t i = 0; i < variables.size(); i++) {
+            Variable variable(variables[i]);
+            variablePositions[i] = variableNames[variable.toString()];
+        }
+    }
 
     virtual ~Formula() = default;
 
@@ -57,9 +61,9 @@ public:
 
     [[nodiscard]] string toString() const { return root->toString(); }
 
-    [[nodiscard]] shared_ptr<Node> &getRoot() { return root; }
+    [[nodiscard]] shared_ptr <Node> &getRoot() { return root; }
 
-    [[nodiscard]] shared_ptr<Node> getRoot() const { return root; }
+    [[nodiscard]] shared_ptr <Node> getRoot() const { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
@@ -92,7 +96,7 @@ private:
     vector<Number *> numbers;
     map<size_t, Variable *> variablePositions;
     map<string, Variable *> variableNames;
-    shared_ptr<Node> root;
+    shared_ptr <Node> root;
 
     void init(const vector<Variable> &vars) {
         variableNames.clear();
@@ -104,7 +108,7 @@ private:
         }
     }
 
-    void traverse(const shared_ptr<Node> &current) {
+    void traverse(const shared_ptr <Node> &current) {
         auto *binary = dynamic_cast<BinaryOperation *>(current.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(current.get());
@@ -133,6 +137,121 @@ private:
         traverse(binary->getLeft());
         binaryOperators.push_back(binary);
         traverse(binary->getRight());
+    }
+
+    shared_ptr <Node> createCopy(shared_ptr <Node> original) {
+        auto *binary = dynamic_cast<BinaryOperation *>(original.get());
+        if (binary == nullptr) {
+            auto *unary = dynamic_cast<UnaryOperation *>(original.get());
+            if (unary != nullptr) {
+                unary->setOperand(createCopy(unary->getOperand()));
+                auto *cosine = dynamic_cast<Cosine *>(original.get());
+                if (cosine != nullptr) {
+                    return shared_ptr<Cosine>(new Cosine(*cosine));
+                }
+                auto *cube = dynamic_cast<Cube *>(original.get());
+                if (cube != nullptr) {
+                    return shared_ptr<Cube>(new Cube(*cube));
+                }
+                auto *cubeRoot = dynamic_cast<CubeRoot *>(original.get());
+                if (cubeRoot != nullptr) {
+                    return shared_ptr<CubeRoot>(new CubeRoot(*cubeRoot));
+                }
+                auto *exponentiation = dynamic_cast<Exponentiation *>(original.get());
+                if (exponentiation != nullptr) {
+                    return shared_ptr<Exponentiation>(new Exponentiation(*exponentiation));
+                }
+                auto *logarithmBinary = dynamic_cast<LogarithmBinary *>(original.get());
+                if (logarithmBinary != nullptr) {
+                    return shared_ptr<LogarithmBinary>(new LogarithmBinary(*logarithmBinary));
+                }
+                auto *logarithmCommon = dynamic_cast<LogarithmCommon *>(original.get());
+                if (logarithmCommon != nullptr) {
+                    return shared_ptr<LogarithmCommon>(new LogarithmCommon(*logarithmCommon));
+                }
+                auto *logarithmNatural = dynamic_cast<LogarithmNatural *>(original.get());
+                if (logarithmNatural != nullptr) {
+                    return shared_ptr<LogarithmNatural>(new LogarithmNatural(*logarithmNatural));
+                }
+                auto *sine = dynamic_cast<Sine *>(original.get());
+                if (sine != nullptr) {
+                    return shared_ptr<Sine>(new Sine(*sine));
+                }
+                auto *square = dynamic_cast<Square *>(original.get());
+                if (square != nullptr) {
+                    return shared_ptr<Square>(new Square(*square));
+                }
+                auto *squareRoot = dynamic_cast<SquareRoot *>(original.get());
+                if (squareRoot != nullptr) {
+                    return shared_ptr<SquareRoot>(new SquareRoot(*squareRoot));
+                }
+                auto *squareRootNegative = dynamic_cast<SquareRootNegative *>(original.get());
+                if (squareRootNegative != nullptr) {
+                    return shared_ptr<SquareRootNegative>(new SquareRootNegative(*squareRootNegative));
+                }
+                auto *tangent = dynamic_cast<Tangent *>(original.get());
+                if (tangent != nullptr) {
+                    return shared_ptr<Tangent>(new Tangent(*tangent));
+                }
+            }
+            auto *constant = dynamic_cast<Constant *>(original.get());
+            if (constant != nullptr) {
+                Constant *constantCopy = new Constant(*constant);
+                constants.insert(constantCopy);
+                return shared_ptr<Constant>(constantCopy);
+            }
+            auto *variable = dynamic_cast<Variable *>(original.get());
+            if (variable != nullptr) {
+                Variable *variableCopy = new Variable(*variable);
+                variableNames[variableCopy->toString()] = variableCopy;
+                return shared_ptr<Variable>(variableCopy);
+            }
+            auto *number = dynamic_cast<Number *>(original.get());
+            if (number != nullptr && variable == nullptr) {
+                Number *numberCopy = new Number(*number);
+                numbers.push_back(numberCopy);
+                return shared_ptr<Number>(numberCopy);
+            }
+            auto *wrapper = dynamic_cast<Wrapper *>(original.get());
+            if (wrapper != nullptr) {
+                Wrapper *wrapperCopy = new Wrapper(*wrapper);
+                wrapperCopy->setNode(createCopy(wrapper->getNode()));
+                return shared_ptr<Wrapper>(wrapperCopy);
+            }
+        }
+        binary->setLeft(createCopy(binary->getLeft()));
+        binary->setRight(createCopy(binary->getRight()));
+        auto *addition = dynamic_cast<Addition *>(original.get());
+        if (addition != nullptr) {
+            auto additionCopy = new Addition(*addition);
+            binaryOperators.push_back(additionCopy);
+            return shared_ptr<Addition>(additionCopy);
+        }
+        auto *division = dynamic_cast<Division *>(original.get());
+        if (division != nullptr) {
+            auto divisionCopy = new Division(*division);
+            binaryOperators.push_back(divisionCopy);
+            return shared_ptr<Division>(divisionCopy);
+        }
+        auto *multiplication = dynamic_cast<Multiplication *>(original.get());
+        if (multiplication != nullptr) {
+            auto multiplicationCopy = new Multiplication(*multiplication);
+            binaryOperators.push_back(multiplicationCopy);
+            return shared_ptr<Multiplication>(multiplicationCopy);
+        }
+        auto *power = dynamic_cast<Power *>(original.get());
+        if (power != nullptr) {
+            auto powerCopy = new Power(*power);
+            binaryOperators.push_back(powerCopy);
+            return shared_ptr<Power>(powerCopy);
+        }
+        auto *subtraction = dynamic_cast<Subtraction *>(original.get());
+        if (subtraction != nullptr) {
+            auto subtractionCopy = new Subtraction(*subtraction);
+            binaryOperators.push_back(subtractionCopy);
+            return shared_ptr<Subtraction>(subtractionCopy);
+        }
+        return original;
     }
 };
 

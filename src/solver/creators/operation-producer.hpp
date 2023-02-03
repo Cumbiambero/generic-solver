@@ -87,13 +87,13 @@ private:
     }
 
     shared_ptr<Node> createUnaryOperation(vector<Variable> params) {
-        decltype((params[0])) operand = params[0];
+        decltype(params[0]) operand = params[0];
         return createUnaryOperation(operand);
     }
 
     shared_ptr<Node> createBinaryOperation(vector<Variable> params) {
-        decltype((params[0])) left = params[0];
-        decltype((params[1])) right = params[1];
+        decltype(params[0]) left = params[0];
+        decltype(params[1]) right = params[1];
         return createBinaryOperation(left, right);
     }
 

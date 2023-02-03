@@ -26,5 +26,5 @@ TEST_CASE("Flipper Immutability") {
     flipper.change(copy);
 
     CHECK(formula.toString() == "((√(a)*8)+3)");
-    CHECK(copy.toString() == "((√(a)*8)+3)");
+    CHECK(copy.toString() == "((8*√(a))+3)");
 }

@@ -32,6 +32,10 @@ public:
 
     shared_ptr<Node> &getNode() { return node; }
 
+    void setNode(const shared_ptr<Node> &node) {
+        this->node = node;
+    }
+
 protected:
     shared_ptr<Node> node;
 };
