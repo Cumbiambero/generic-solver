@@ -1,5 +1,5 @@
 #include "test.hpp"
-#include "../src/changers/flipper.hpp"
+#include "../src/solver/changers/flipper.hpp"
 
 TEST_CASE("Flipper") {
     Variable x("x", 1);
@@ -10,6 +10,6 @@ TEST_CASE("Flipper") {
     CHECK(formula.toString() == "(((∛(x)*e)+tan(3))^(4/x))");
 
     Flipper flipper(testCoin);
-    flipper.flip(formula);
+    flipper.change(formula);
     CHECK(formula.toString() == "((4/x)^((e*∛(x))+tan(3)))");
 }

@@ -1,5 +1,5 @@
 #include "test.hpp"
-#include "../src/creators/merger.hpp"
+#include "../src/solver/creators/merger.hpp"
 
 TEST_CASE("Merger") {
     Variable x("x");

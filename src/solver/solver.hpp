@@ -1,24 +1,28 @@
 #ifndef GENERIC_SOLVER_SOLVER_HPP
 #define GENERIC_SOLVER_SOLVER_HPP
 
-#include "../tree/tree.hpp"
+#include "solver-base.hpp"
 #include <cmath>
-#include <set>
-#include <vector>
 
 class Solution {
 public:
-    Solution(Node &formula, double rate) : formula(formula), rate(rate) {}
+    Solution(Formula &formula, ChangerType changer, number rate) : formula(formula), lastChanger(changer), rate(rate) {}
 
     bool operator<(Solution &other) const { return (this->rate < other.rate); }
 
-    Node &getForumla() { return this->getForumla(); }
+    Formula &getForumla() const { return formula; }
 
-    int getRate() { return this->getRate(); }
+    ChangerType getLastChanger() const { return lastChanger; }
+
+    number getRate() const { return rate; }
 
 private:
-    Node &formula;
-    int rate;
+    Formula &formula;
+    ChangerType lastChanger;
+    number rate;
+
+public:
+
 };
 
 class Result {
@@ -27,15 +31,13 @@ public:
         return 1 - abs(1 - expected / actual);
     }
 
-    static number rate(const Node &formula, const vector<vector<number>> &input,
+    static number rate(Formula &formula, const vector<vector<number>> &input,
                        const vector<vector<number>> &expected) {
         number result = 0;
         size_t records = expected.size();
 
-        for (int i = 0; i < records; ++i) {
-            for (int j = 0; j < records; ++j) {
-                result += (expected[i][j] / input[i][j]) / records;
-            }
+        for (auto i = 0; i < records; ++i) {
+            result += expected[i][0] / formula.evaluate(input[i]) / records;
         }
         return result == 0 ? 0 : 1 - abs(1 - result);
     }

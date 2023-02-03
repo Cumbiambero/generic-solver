@@ -17,12 +17,12 @@ public:
     Formula(N &node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
 
     template<typename N>
-    Formula(N &node, const vector<Variable>& vars)
+    Formula(N &node, const vector<Variable> &vars)
             : root(make_shared<Wrapper>(Wrapper(node))) {
         init(vars);
     }
 
-    Formula(shared_ptr<Node> node, const vector<Variable>& vars)
+    Formula(shared_ptr<Node> node, const vector<Variable> &vars)
             : root(std::move((node))) {
         init(vars);
     }
@@ -31,8 +31,7 @@ public:
         std::vector<number> values = {params};
         size_t numberOfParams = values.size();
         if (variables.size() != numberOfParams) {
-            throw invalid_argument(
-                    "the number of params does not match with the number of params");
+            throw invalid_argument("the number of params does not match with the number of params");
         }
         lock.lock();
 
@@ -67,7 +66,7 @@ private:
     shared_ptr<Node> root;
 
     void init(const vector<Variable> &vars) {
-        traverse(root.get());
+        traverse(root);
         for (size_t i = 0; i < vars.size(); i++) {
             Variable variable = vars[i];
             variables.push_back(variable);
@@ -75,32 +74,32 @@ private:
         }
     }
 
-    void traverse(Node *node) {
-        auto *binary = dynamic_cast<BinaryOperation *>(node);
+    void traverse(const shared_ptr<Node>& current) {
+        auto *binary = dynamic_cast<BinaryOperation *>(current.get());
         if (binary == nullptr) {
-            auto *unary = dynamic_cast<UnaryOperation *>(node);
+            auto *unary = dynamic_cast<UnaryOperation *>(current.get());
             if (unary != nullptr) {
-                traverse(unary->getOperand().get());
+                traverse(unary->getOperand());
                 unaryOperators.push_back(unary);
             }
-            auto *constant = dynamic_cast<Constant *>(node);
+            auto *constant = dynamic_cast<Constant *>(current.get());
             if (constant != nullptr) {
                 constants.insert(constant);
             }
-            auto *variable = dynamic_cast<Variable *>(node);
+            auto *variable = dynamic_cast<Variable *>(current.get());
             if (variable != nullptr) {
                 variableNames[variable->toString()].push_back(variable);
             }
-            auto *wrapper = dynamic_cast<Wrapper *>(node);
+            auto *wrapper = dynamic_cast<Wrapper *>(current.get());
             if (wrapper != nullptr) {
-                traverse(wrapper->getNode().get());
+                traverse(wrapper->getNode());
             }
             return;
         }
 
-        traverse(binary->getLeft().get());
+        traverse(binary->getLeft());
         binaryOperators.push_back(binary);
-        traverse(binary->getRight().get());
+        traverse(binary->getRight());
     }
 };
 

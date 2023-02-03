@@ -33,6 +33,8 @@ TEST_CASE("CSV Parsing: Existing file") {
     }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-result"
 TEST_CASE("CSV Parsing: Incorrect path") {
     CHECK_THROWS_WITH(parser.parse("non-existing-file.csv"), "Couldn't read file: non-existing-file.csv");
 }
@@ -40,3 +42,4 @@ TEST_CASE("CSV Parsing: Incorrect path") {
 TEST_CASE("CSV Parsing: Incorrect content") {
     CHECK_THROWS_WITH(parser.parse(getPath("test/resources/csv-parser-nok.csv")), "Incorrect content detected: two");
 }
+#pragma clang diagnostic pop

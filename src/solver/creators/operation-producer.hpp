@@ -1,8 +1,7 @@
-#ifndef GENERIC_SOLVER_CREATORS_RANDOM_OPERATION_PRODUCER_HPP
-#define GENERIC_SOLVER_CREATORS_RANDOM_OPERATION_PRODUCER_HPP
+#ifndef GENERIC_SOLVER_CREATORS_OPERATION_PRODUCER_HPP
+#define GENERIC_SOLVER_CREATORS_OPERATION_PRODUCER_HPP
 
-#include "../utils/arbitrary.hpp"
-#include "../solver/formula.hpp"
+#include "../solver-base.hpp"
 
 class OperationProducer {
 public:
@@ -39,6 +38,7 @@ public:
             case HYP:
                 return make_shared<Hypotenuse>(Hypotenuse(left, right));
         }
+        return nullptr;
     }
 
 private:
@@ -86,6 +86,7 @@ private:
             case EXP:
                 return make_shared<Exponentiation>(Exponentiation(operand));
         }
+        return nullptr;
     }
 
     shared_ptr<Node> createBinaryOperation(vector<Variable> params) {
