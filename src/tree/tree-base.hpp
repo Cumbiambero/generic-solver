@@ -88,13 +88,9 @@ public:
     Pi() : Constant("π", 3.141592653589793238462643383279502884L) {}
 };
 
-static Pi PI;
-
 class Euler : public Constant {
 public:
     Euler() : Constant("e", 2.718281828459045235360287471352662498L) {}
 };
-
-static Euler E;
 
 #endif
