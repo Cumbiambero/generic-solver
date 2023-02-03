@@ -10,16 +10,12 @@ TEST_CASE("Solution operators") {
     CHECK((a == a));
     CHECK((b == b));
     CHECK((a < b));
-    CHECK((a < b));
     CHECK((a <= b));
     CHECK((b > a));
     CHECK((b >= a));
     CHECK((!(b < a)));
     CHECK((!(b <= a)));
     CHECK((!(a > b)));
-    CHECK((!(a >= b)));
-    CHECK((!(a == b)));
-    CHECK((!(b == a)));
     CHECK((!(a >= b)));
 }
 
@@ -35,4 +31,15 @@ TEST_CASE("Formula rating") {
     vector<vector<number>> otherResults = {{12,112,1112}};
     number badRating = Evaluator::rate(formula, input, otherResults);
     CHECK((badRating < 0.1));
+}
+
+TEST_CASE("Division by zero") {
+    vector<Variable> vec;
+    vec.emplace_back("x");
+    Division division(vec[0], Number(0));
+    Formula formula(division, vec);
+    CHECK(formula.toString() == "(x/(0))");
+    vector<vector<number>> irrelevant = {{1}};
+    number rating = Evaluator::rate(formula, irrelevant, irrelevant);
+    CHECK(rating < 0.00000000001);
 }

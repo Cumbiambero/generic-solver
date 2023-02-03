@@ -15,7 +15,7 @@ public:
     Formula(N &node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
 
     template<typename N>
-    Formula(N &node, const vector<Variable>& variables)
+    Formula(N &node, const vector<Variable> &variables)
             : variables(variables), root(make_shared<Wrapper>(Wrapper(node))) {
         init(variables);
     }
@@ -51,12 +51,16 @@ public:
         number result = root->calculate();
         lock.unlock();
 
+        if (result == INFINITY) {
+            result = std::numeric_limits<number>::lowest(); // not sure if this is a good idea
+        }
+
         return result;
     }
 
     [[nodiscard]] string toString() const { return root->toString(); }
 
-    [[nodiscard]] shared_ptr<Node> &getRoot() { return root; }
+    [[nodiscard]] shared_ptr <Node> &getRoot() { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
@@ -76,7 +80,7 @@ public:
         return !(rhs == *this);
     }
 
-    void setRoot(shared_ptr<Node> rootNode) {
+    void setRoot(shared_ptr <Node> rootNode) {
         this->root = rootNode;
     }
 
@@ -88,7 +92,7 @@ private:
     map<size_t, Variable *> variablePositions;
     map<string, Variable *> variableNames;
     vector<Variable> variables;
-    shared_ptr<Node> root;
+    shared_ptr <Node> root;
 
     void init(const vector<Variable> &vars) {
         variableNames.clear();
@@ -100,7 +104,7 @@ private:
         }
     }
 
-    void traverse(const shared_ptr<Node> &current) {
+    void traverse(const shared_ptr <Node> &current) {
         auto *binary = dynamic_cast<BinaryOperation *>(current.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(current.get());
@@ -131,7 +135,7 @@ private:
         binaryOperators.push_back(binary);
     }
 
-    shared_ptr<Node> createCopy(shared_ptr<Node> original) {
+    shared_ptr <Node> createCopy(shared_ptr <Node> original) {
         auto *binary = dynamic_cast<BinaryOperation *>(original.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(original.get());
