@@ -21,7 +21,10 @@ public:
     }
 
 private:
-    void traverse(shared_ptr<Node>& node) {
+    void traverse(shared_ptr<Node> node) {
+        if (node == nullptr) {
+            return;
+        }
         auto *wrapper = dynamic_cast<Wrapper *>(node.get());
         if (wrapper != nullptr) {
             traverse(wrapper->getNode());

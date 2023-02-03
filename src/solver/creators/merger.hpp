@@ -27,7 +27,7 @@ private:
     shared_ptr<Coin> coin;
     shared_ptr<OperationProducer> operationProducer;
 
-    shared_ptr <Node> traverse(shared_ptr <Node> node) {
+    shared_ptr<Node> traverse(shared_ptr<Node> node) {
         auto binary = dynamic_cast<BinaryOperation *>(node.get());
         if (binary == nullptr) {
             auto unary = dynamic_cast<UnaryOperation *>(node.get());
