@@ -30,7 +30,7 @@ public:
     }
 
     ChangerType getType() override {
-        return REDUCER_BY_FRAGMENT;
+        return ChangerType::REDUCER_BY_FRAGMENT;
     }
 };
 

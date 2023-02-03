@@ -6,15 +6,13 @@
 #include "creators/creators.hpp"
 #include "changers/changers.hpp"
 
-enum SolverState {
+enum class SolverState {
     BROKEN,
     PAUSED,
     READY,
     RUNNING,
     DONE
 };
-
-
 
 class ChangerPicker {
 public:
@@ -28,19 +26,19 @@ public:
         init();
     }
 
-    Changer* pickChanger(ChangerType changerType) {
-        return changers[changerType];
+    Changer *pickChanger(const ChangerType changerType) {
+        return changers[changerType].get();
     }
 
     Changer *pickRandomChanger() {
         auto it = changers.begin();
         std::advance(it, randomNumber->calculate(0, changers.size() - 1) % changers.size());
-        return it->second;
+        return it->second.get();
     }
 
 private:
-    map<ChangerType, Changer *> changers;
-    map<ChangerType, Creator *> creators;
+    map<ChangerType, unique_ptr<Changer>> changers;
+    map<ChangerType, unique_ptr<Creator>> creators;
     shared_ptr<RandomNumber> randomNumber;
     shared_ptr<Coin> coin;
 
@@ -50,19 +48,19 @@ private:
     }
 
     void initChangers() {
-        changers[FLIPPER] = make_unique<Flipper>().get();
-        changers[INCREMENTOR_BY_ONE] = make_unique<IncrementorByOne>().get();
-        changers[INCREMENTOR_BY_DOUBLING] = make_unique<IncrementorByDoubling>().get();
-        changers[INCREMENTOR_BY_FRAGMENT] = make_unique<IncrementorByFragment>().get();
-        changers[REDUCER_BY_ONE] = make_unique<ReducerByOne>().get();
-        changers[REDUCER_BY_HALVING] = make_unique<ReducerByHalving>().get();
-        changers[REDUCER_BY_FRAGMENT] = make_unique<ReducerByFragment>().get();
+        changers[ChangerType::FLIPPER] = make_unique<Flipper>();
+        changers[ChangerType::INCREMENTOR_BY_ONE] = make_unique<IncrementorByOne>();
+        changers[ChangerType::INCREMENTOR_BY_DOUBLING] = make_unique<IncrementorByDoubling>();
+        changers[ChangerType::INCREMENTOR_BY_FRAGMENT] = make_unique<IncrementorByFragment>();
+        changers[ChangerType::REDUCER_BY_ONE] = make_unique<ReducerByOne>();
+        changers[ChangerType::REDUCER_BY_HALVING] = make_unique<ReducerByHalving>();
+        changers[ChangerType::REDUCER_BY_FRAGMENT] = make_unique<ReducerByFragment>();
     }
 
     void initCreators() {
-        creators[MERGER] = make_unique<Merger>().get();
-        creators[NUMBER_INSERTER] = make_unique<NumberInserter>().get();
-        creators[OPERATION_REPLACER] = make_unique<OperationReplacer>().get();
+        creators[ChangerType::MERGER] = make_unique<Merger>();
+        creators[ChangerType::NUMBER_INSERTER] = make_unique<NumberInserter>();
+        creators[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
     }
 };
 

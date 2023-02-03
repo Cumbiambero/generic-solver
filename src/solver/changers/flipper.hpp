@@ -23,7 +23,7 @@ public:
     }
 
     ChangerType getType() override {
-        return FLIPPER;
+        return ChangerType::FLIPPER;
     }
 };
 

@@ -11,8 +11,6 @@
 
 class Formula {
 public:
-    Formula(const Formula &copy) {}
-
     template<typename N>
     Formula(N &node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
 
@@ -22,10 +20,17 @@ public:
         init(vars);
     }
 
-    Formula(shared_ptr<Node> node, const vector<Variable> &vars)
-            : root(std::move((node))) {
+    Formula(shared_ptr <Node> node, const vector<Variable> &vars)
+            : root(std::move(node)) {
         init(vars);
     }
+
+    Formula(const Formula &copy)
+            : root(copy.root), constants(copy.constants), unaryOperators(copy.unaryOperators),
+              binaryOperators(copy.binaryOperators), variables(copy.variables), numbers(copy.numbers),
+              variablePositions(copy.variablePositions), variableNames(copy.variableNames) {}
+
+    virtual ~Formula() = default;
 
     number evaluate(number params...) {
         std::vector<number> values = {params};
@@ -33,21 +38,20 @@ public:
         if (variables.size() != numberOfParams) {
             throw invalid_argument("the number of params does not match with the number of params");
         }
-        lock.lock();
 
+        lock.lock();
         for (size_t i = 0; i < numberOfParams; i++) {
-            for (auto var: variablePositions[i]) {
-                var->setValue(values[i]);
-            }
+            variablePositions[i]->setValue(values[i]);
         }
         number result = root->calculate();
         lock.unlock();
+
         return result;
     }
 
-    string toString() const { return root->toString(); }
+    [[nodiscard]] string toString() const { return root->toString(); }
 
-    shared_ptr<Node>& getRoot() { return root; }
+    shared_ptr <Node> &getRoot() { return root; }
 
     vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
 
@@ -55,7 +59,7 @@ public:
 
     vector<Variable> &getVariables() { return variables; }
 
-    vector<Number*> getNumbers() {
+    vector<Number *> getNumbers() {
         return this->numbers;
     }
 
@@ -65,12 +69,15 @@ private:
     vector<UnaryOperation *> unaryOperators;
     vector<BinaryOperation *> binaryOperators;
     vector<Variable> variables;
-    vector<Number*> numbers;
-    map<size_t, vector<Variable *>> variablePositions;
-    map<string, vector<Variable *>> variableNames;
-    shared_ptr<Node> root;
+    vector<Number *> numbers;
+    map<size_t, Variable *> variablePositions;
+    map<string, Variable *> variableNames;
+    shared_ptr <Node> root;
 
     void init(const vector<Variable> &vars) {
+        variables.clear();
+        variableNames.clear();
+        variablePositions.clear();
         traverse(root);
         for (size_t i = 0; i < vars.size(); i++) {
             Variable variable = vars[i];
@@ -79,7 +86,7 @@ private:
         }
     }
 
-    void traverse(const shared_ptr<Node>& current) {
+    void traverse(const shared_ptr <Node> &current) {
         auto *binary = dynamic_cast<BinaryOperation *>(current.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(current.get());
@@ -93,7 +100,7 @@ private:
             }
             auto *variable = dynamic_cast<Variable *>(current.get());
             if (variable != nullptr) {
-                variableNames[variable->toString()].push_back(variable);
+                variableNames[variable->toString()] = variable;
             }
             auto *number = dynamic_cast<Number *>(current.get());
             if (number != nullptr && variable == nullptr) {

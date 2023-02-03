@@ -26,35 +26,35 @@ public:
     template<typename O>
     shared_ptr<Node> createUnaryOperation(const O& operand) {
         switch (pickRandomUnaryOperationType()) {
-            case SIN:
+            case UnaryOperationType::SIN:
                 return make_shared<Sine>(Sine(operand));
-            case COS:
+            case UnaryOperationType::COS:
                 return make_shared<Cosine>(Cosine(operand));
-            case ARC_SIN:
+            case UnaryOperationType::ARC_SIN:
                 return make_shared<ArcSine>(ArcSine(operand));
-            case ARC_COS:
+            case UnaryOperationType::ARC_COS:
                 return make_shared<ArcCosine>(ArcCosine(operand));
-            case TAN:
+            case UnaryOperationType::TAN:
                 return make_shared<Tangent>(Tangent(operand));
-            case ARC_TAN:
+            case UnaryOperationType::ARC_TAN:
                 return make_shared<ArcTangent>(ArcTangent(operand));
-            case SQUARE:
+            case UnaryOperationType::SQUARE:
                 return make_shared<Square>(Square(operand));
-            case CUBE:
+            case UnaryOperationType::CUBE:
                 return make_shared<Cube>(Cube(operand));
-            case SQUARE_ROOT:
+            case UnaryOperationType::SQUARE_ROOT:
                 return make_shared<SquareRoot>(SquareRoot(operand));
-            case SQUARE_ROOT_NEG:
+            case UnaryOperationType::SQUARE_ROOT_NEG:
                 return make_shared<SquareRootNegative>(SquareRootNegative(operand));
-            case CUBE_ROOT:
+            case UnaryOperationType::CUBE_ROOT:
                 return make_shared<CubeRoot>(CubeRoot(operand));
-            case LOG:
+            case UnaryOperationType::LOG:
                 return make_shared<LogarithmNatural>(LogarithmNatural(operand));
-            case LOG_10:
+            case UnaryOperationType::LOG_10:
                 return make_shared<LogarithmCommon>(LogarithmCommon(operand));
-            case LOG_2:
+            case UnaryOperationType::LOG_2:
                 return make_shared<LogarithmBinary>(LogarithmBinary(operand));
-            case EXP:
+            case UnaryOperationType::EXP:
                 return make_shared<Exponentiation>(Exponentiation(operand));
         }
         return nullptr;
@@ -63,20 +63,24 @@ public:
     template<typename L, typename R>
     shared_ptr<Node> createBinaryOperation(const L& left, const R& right) {
         switch (pickRandomBinaryOperationType()) {
-            case ADD:
+            case BinaryOperationType::ADD:
                 return make_shared<Addition>(Addition(left, right));
-            case SUB:
+            case BinaryOperationType::SUB:
                 return make_shared<Subtraction>(Subtraction(left, right));
-            case MUL:
+            case BinaryOperationType::MUL:
                 return make_shared<Multiplication>(Multiplication(left, right));
-            case DIV:
+            case BinaryOperationType::DIV:
                 return make_shared<Division>(Division(left, right));
-            case POW:
+            case BinaryOperationType::POW:
                 return make_shared<Power>(Power(left, right));
-            case HYP:
+            case BinaryOperationType::HYP:
                 return make_shared<Hypotenuse>(Hypotenuse(left, right));
         }
         return nullptr;
+    }
+
+    const shared_ptr<RandomNumber> &getRandomNumber() const {
+        return randomNumber;
     }
 
 private:
