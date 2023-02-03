@@ -15,7 +15,10 @@ public:
 
     Solution(const Solution &copy) = default;
 
-    bool operator<(const Solution &other) const { return rate < other.rate; }
+    bool operator<(const Solution &other) const {
+        return rate < other.rate
+               || (rate == other.rate && formula.toString() < other.getFormula().toString());
+    }
 
     bool operator>(const Solution &other) const { return rate > other.rate; }
 
@@ -27,7 +30,9 @@ public:
         return formula.toString() == other.formula.toString();
     }
 
-    bool operator!=(const Solution &other) const { return !(other == *this); }
+    bool operator!=(const Solution &other) const {
+        return formula.toString() != other.formula.toString();
+    }
 
     [[nodiscard]] Formula getFormula() const { return formula; }
 

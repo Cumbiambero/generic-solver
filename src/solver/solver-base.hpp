@@ -48,6 +48,7 @@ private:
         changers[ChangerType::REDUCER_BY_FRAGMENT] = make_unique<ReducerByFragment>();
         changers[ChangerType::NUMBER_INSERTER] = make_unique<NumberInserter>();
         changers[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
+        changers[ChangerType::PURGER] = make_unique<Purger>();
         changers[ChangerType::MERGER] = make_unique<OperationReplacer>(); // this is intentional
     }
 };

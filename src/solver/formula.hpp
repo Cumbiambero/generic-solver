@@ -76,6 +76,10 @@ public:
         return !(rhs == *this);
     }
 
+    void setRoot(shared_ptr<Node> rootNode) {
+        this->root = rootNode;
+    }
+
 private:
     mutex lock;
     set<Constant *> constants;
