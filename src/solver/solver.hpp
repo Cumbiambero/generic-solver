@@ -139,13 +139,13 @@ private:
     void work() {
         while (currentState == SolverState::RUNNING) {
             auto changer = pickChanger();
-            auto bestSolutionIt = solutions.rbegin();
-            auto bestFormula = (*bestSolutionIt).getFormula();
+            auto reverseIterator = solutions.rbegin();
+            auto bestFormula = (*reverseIterator).getFormula();
             number rate;
             if (changer == nullptr) {
-                advance(bestSolutionIt, 1);
-                auto secondBestFormula = (*bestSolutionIt).getFormula();
-                auto formula = merger.merge(bestFormula, secondBestFormula);
+                advance(reverseIterator, merger.getCoin()->toss() ? 1 : solutions.size() / 2);
+                auto existingFormula = (*reverseIterator).getFormula();
+                auto formula = merger.merge(bestFormula, existingFormula);
                 rate = storeSolution(ChangerType::MERGER, formula);
             } else {
                 auto formula = changer->change(bestFormula);
