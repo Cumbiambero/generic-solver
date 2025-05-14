@@ -50,27 +50,28 @@ public:
         number result = 0;
         number records = 0;
         for (auto l = 0; l < expected.size(); l++) {
-            for (auto c = 0; c < expected[l].size(); c++) {
-                ++records;
-                number currentResult = formula.evaluate(input[l][c]);
-                number expectedResult = expected[l][c];
-                if (expectedResult == currentResult) {
-                    ++result;
+            ++records;
+            const auto& inputRow = input[l];
+            number currentResult = std::apply([&](auto&&... args) {
+                return formula.evaluate(args...);
+            }, inputRow);
+            number expectedResult = expected[l][0]; // only one column in expected
+            if (expectedResult == currentResult) {
+                ++result;
+            } else {
+                number increment;
+                auto absCurrent = abs(currentResult);
+                auto absExpected = abs(expectedResult);
+                auto dividend(min(absExpected, absCurrent));
+                auto divisor(max(absExpected, absCurrent));
+                if (divisor == 0) {
+                    increment = dividend == 1 ? 0.5 : 1 / dividend;
+                } else if (dividend == 0) {
+                    increment = divisor == 1 ? 0.5 : 1 / divisor;
                 } else {
-                    number increment;
-                    auto absCurrent = abs(currentResult);
-                    auto absExpected = abs(expectedResult);
-                    auto dividend(min(absExpected, absCurrent));
-                    auto divisor(max(absExpected, absCurrent));
-                    if (divisor == 0) {
-                        increment = dividend == 1 ? 0.5 : 1 / dividend;
-                    } else if (dividend == 0) {
-                        increment = divisor == 1 ? 0.5 : 1 / divisor;
-                    } else {
-                        increment = dividend / divisor;
-                    }
-                    result += increment < 1 ? increment : 1 / increment;
+                    increment = dividend / divisor;
                 }
+                result += increment < 1 ? increment : 1 / increment;
             }
         }
         return result / records;
@@ -92,8 +93,11 @@ public:
         }
         currentState = SolverState::RUNNING;
 
+        vector<thread> workers;
         for (auto i = 0; i < cores; ++i) {
-            thread worker([this]() { work(); });
+            workers.emplace_back([this]() { work(); });
+        }
+        for (auto& worker : workers) {
             worker.join();
         }
         if (currentState == SolverState::DONE) {
