@@ -25,12 +25,16 @@ private:
     shared_ptr<Node> e = shared_ptr<Node>(new Euler());
 
     [[nodiscard]] shared_ptr<Node> createNumberOrConstant() const {
-        if (operationProducer->getRandomNumber()->calculate(0, 10) < 8) {
-            return shared_ptr<Node>(new Number(1.0));
+        int r = operationProducer->getRandomNumber()->calculate(0, 20);
+        if (r < 14) {
+            int val = operationProducer->getRandomNumber()->calculate(-5, 10);
+            return std::make_shared<Number>(static_cast<number>(val));
+        } else if (r < 18) { 
+            number val = operationProducer->getRandomNumber()->calculate(1, 10) / 10.0; 
+            return std::make_shared<Number>(val);
+        } else if (r == 18) {
+            return pi;
         } else {
-            if (coin->toss()) {
-                return pi;
-            }
             return e;
         }
     }

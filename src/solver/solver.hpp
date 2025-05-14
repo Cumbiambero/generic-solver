@@ -52,11 +52,22 @@ public:
         for (auto l = 0; l < expected.size(); l++) {
             ++records;
             const auto& inputRow = input[l];
-            number currentResult = std::apply([&](auto&&... args) {
-                return formula.evaluate(args...);
-            }, inputRow);
+            number currentResult;
+            switch (inputRow.size()) {
+                case 1: currentResult = formula.evaluate(inputRow[0]); break;
+                case 2: currentResult = formula.evaluate(inputRow[0], inputRow[1]); break;
+                case 3: currentResult = formula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                case 4: currentResult = formula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                default: throw std::runtime_error("Too many variables for formula.evaluate");
+            }
+
+            if (std::isnan(currentResult) || std::isinf(currentResult)) {
+                return 0.000001;
+            }
+
             number expectedResult = expected[l][0]; // only one column in expected
-            if (expectedResult == currentResult) {
+            const double EPSILON = 1e-6;
+            if (std::abs(expectedResult - currentResult) < EPSILON) {
                 ++result;
             } else {
                 number increment;
