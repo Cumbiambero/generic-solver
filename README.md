@@ -31,7 +31,7 @@ There are some input and result files stored in the test subdirectory as demonst
 ```
 ./solver ../test/resources/input-one-to-ten.csv ../test/resources/square-results.csv x
 ./solver ../test/resources/input-one-to-ten.csv ../test/resources/square-plus-three-results.csv x
-./solver ../test/resources/input-one-to-thousand.csv ../test/resouarces/primes-results.csv x
+./solver ../test/resources/input-one-to-thousand.csv ../test/resources/primes-results.csv x
 ./solver ../test/resources/input-one-to-ten.csv ../test/resources/circle-results.csv r
 ```
 
