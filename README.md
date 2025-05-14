@@ -35,4 +35,8 @@ There are some input and result files stored in the test subdirectory as demonst
 ./solver ../test/resources/input-one-to-ten.csv ../test/resources/circle-results.csv r
 ```
 
-Copyright 2023, Eduardo Hahn Paredes
+### Development
+
+To build and run the tests set -DBUILD_TESTING=ON when running CMake.
+
+Copyright 2025, Eduardo Hahn Paredes
