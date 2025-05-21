@@ -49,6 +49,7 @@ public:
     static number rate(Formula &formula, const vector<vector<number>> &input, const vector<vector<number>> &expected) {
         number result = 0;
         number records = 0;
+        bool allPerfect = true;
         for (auto l = 0; l < expected.size(); l++) {
             ++records;
             const auto& inputRow = input[l];
@@ -61,15 +62,17 @@ public:
                 default: throw std::runtime_error("Too many variables for formula.evaluate");
             }
 
+            // Penalize any invalid result
             if (std::isnan(currentResult) || std::isinf(currentResult)) {
-                return 0.000001;
+                return 0.0;
             }
 
-            number expectedResult = expected[l][0]; // only one column in expected
+            number expectedResult = expected[l][0];
             const double EPSILON = 1e-6;
             if (std::abs(expectedResult - currentResult) < EPSILON) {
                 ++result;
             } else {
+                allPerfect = false;
                 number increment;
                 auto absCurrent = abs(currentResult);
                 auto absExpected = abs(expectedResult);
@@ -85,7 +88,11 @@ public:
                 result += increment < 1 ? increment : 1 / increment;
             }
         }
-        return result / records;
+
+        number rate = result / records;
+        if (allPerfect) return 1.0;
+        if (rate > 0.999999) return 0.999999; 
+        return rate;
     }
 };
 
@@ -173,6 +180,8 @@ private:
     atomic<unsigned int> pos = 0;
 
     void work() {
+        int stagnationCounter = 0;
+        number lastBestRate = 0.0;
         while (currentState == SolverState::RUNNING) {
             auto changer = pickChanger();
             auto reverseIterator = solutions.rbegin();
@@ -186,6 +195,29 @@ private:
             } else {
                 auto formula = changer->change(merger.getCoin()->toss() ? bestFormula : existingFormula);
                 storeSolution(changer->getType(), formula);
+            }
+
+            // stagnation detection
+            number currentBestRate = solutions.rbegin()->getRate();
+            if (std::abs(currentBestRate - lastBestRate) < 1e-8) {
+                stagnationCounter++;
+            } else {
+                stagnationCounter = 0;
+                lastBestRate = currentBestRate;
+            }
+            // inject randomness
+            if (stagnationCounter > 500) {
+                lock.lock();
+                auto best = *solutions.rbegin();
+                solutions.clear();
+                solutions.insert(best);
+                for (int i = 0; i < 1000; ++i) {
+                    auto node = operationProducer.produce(variables);
+                    Formula randomFormula(node, variables);
+                    storeSolution(ChangerType::FLIPPER, randomFormula);
+                }
+                lock.unlock();
+                stagnationCounter = 0;
             }
         }
     }

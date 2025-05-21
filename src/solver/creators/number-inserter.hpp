@@ -26,13 +26,13 @@ private:
 
     [[nodiscard]] shared_ptr<Node> createNumberOrConstant() const {
         int r = operationProducer->getRandomNumber()->calculate(0, 20);
-        if (r < 14) {
+        if (r < 12) {
             int val = operationProducer->getRandomNumber()->calculate(-5, 10);
             return std::make_shared<Number>(static_cast<number>(val));
-        } else if (r < 18) { 
+        } else if (r < 16) { 
             number val = operationProducer->getRandomNumber()->calculate(1, 10) / 10.0; 
             return std::make_shared<Number>(val);
-        } else if (r == 18) {
+        } else if (r == 19) {
             return pi;
         } else {
             return e;
