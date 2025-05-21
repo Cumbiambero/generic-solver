@@ -58,7 +58,10 @@ public:
         return result;
     }
 
-    [[nodiscard]] string toString() const { return root->toString(); }
+    [[nodiscard]] string toString() const { 
+        root->simplify();
+        return root->toString();
+     }
 
     [[nodiscard]] shared_ptr <Node> &getRoot() { return root; }
 
@@ -99,7 +102,7 @@ private:
         variablePositions.clear();
         traverse(root);
         for (size_t i = 0; i < vars.size(); i++) {
-            Variable variable = vars[i];
+            auto variable = vars[i];
             variablePositions[i] = variableNames[variable.toString()];
         }
     }

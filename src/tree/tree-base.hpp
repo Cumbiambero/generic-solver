@@ -8,13 +8,16 @@
 #include <memory>
 #include <utility>
 
-class Node {
+class Node : public std::enable_shared_from_this<Node> {
 public:
     virtual ~Node() = default;
-
     virtual string toString() = 0;
-
     virtual number calculate() = 0;
+    virtual std::shared_ptr<Node> simplify() const {
+        return std::const_pointer_cast<Node>(shared_from_this());
+    }
+protected:
+    Node() = default;
 };
 
 class Wrapper : public Node {
@@ -34,6 +37,10 @@ public:
 
     void setNode(const shared_ptr<Node> &node) {
         this->node = node;
+    }
+
+    std::shared_ptr<Node> simplify() const override {
+        return std::make_shared<Wrapper>(node->simplify());
     }
 
 protected:
@@ -56,6 +63,10 @@ public:
         this->value = val;
     }
 
+    std::shared_ptr<Node> simplify() const override {
+        return std::static_pointer_cast<Number>(const_cast<Number*>(this)->shared_from_this());
+    }
+
 protected:
     number value;
 };
@@ -70,6 +81,10 @@ public:
 
     string toString() override { return symbol; }
 
+    std::shared_ptr<Node> simplify() const override {
+        return std::static_pointer_cast<Variable>(const_cast<Variable*>(this)->shared_from_this());
+    }
+
 private:
     const string symbol;
 };
@@ -82,6 +97,10 @@ public:
     string toString() override { return symbol; }
 
     void setValue(number val) override { /* empty since the value should not be changed on a constant */ }
+
+    std::shared_ptr<Node> simplify() const override {
+        return std::static_pointer_cast<Constant>(const_cast<Constant*>(this)->shared_from_this());
+    }
 
 private:
     const string symbol;
