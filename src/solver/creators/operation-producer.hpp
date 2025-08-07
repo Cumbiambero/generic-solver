@@ -76,11 +76,13 @@ private:
     shared_ptr<RandomNumber> randomNumber;
 
     UnaryOperationType pickRandomUnaryOperationType() {
-        return UNARY_OPERATIONS[randomNumber->calculate(0, (int) UNARY_OPERATIONS.size() - 1)];
+        const auto maxIndex = static_cast<int>(UNARY_OPERATIONS.size()) - 1;
+        return UNARY_OPERATIONS[static_cast<size_t>(randomNumber->calculate(0, maxIndex))];
     }
 
     BinaryOperationType pickRandomBinaryOperationType() {
-        return BINARY_OPERATIONS[randomNumber->calculate(0, (int) BINARY_OPERATIONS.size() - 1)];
+        const auto maxIndex = static_cast<int>(BINARY_OPERATIONS.size()) - 1;
+        return BINARY_OPERATIONS[static_cast<size_t>(randomNumber->calculate(0, maxIndex))];
     }
 
     shared_ptr<Node> createUnaryOperation(vector<Variable> params) {
@@ -96,7 +98,7 @@ private:
 
     shared_ptr<Node> createMultipleBinaryOperations(const vector<Variable> &params, size_t size) {
         vector<shared_ptr<Node>> operators;
-        for (int i = 0; i < size - 1; i += 2) {
+        for (size_t i = 0; i < size - 1; i += 2) {
             auto leftPtr = std::make_shared<Variable>(params[i]);
             auto rightPtr = std::make_shared<Variable>(params[i + 1]);
             operators.push_back(createBinaryOperation(leftPtr, rightPtr));

@@ -2,75 +2,94 @@
 #define GENERIC_SOLVER_TREE_BINARY_HPP
 
 #include "tree-base.hpp"
+#include <cmath>
+#include <limits>
+#include <array>
 
 enum class BinaryOperationType {
     ADD, SUB, MUL, DIV, POW
 };
-static vector<BinaryOperationType> BINARY_OPERATIONS(
-        {BinaryOperationType::ADD, BinaryOperationType::SUB, BinaryOperationType::MUL, BinaryOperationType::DIV,
-         BinaryOperationType::POW});
+
+static constexpr std::array<BinaryOperationType, 5> BINARY_OPERATIONS{
+    BinaryOperationType::ADD, BinaryOperationType::SUB, BinaryOperationType::MUL, 
+    BinaryOperationType::DIV, BinaryOperationType::POW
+};
 
 class BinaryOperation : public Node {
 public:
-    BinaryOperation(string symbol, std::shared_ptr<Node> left, std::shared_ptr<Node> right)
-            : symbol(std::move(symbol)), left(std::move(left)), right(std::move(right)) {}
+    BinaryOperation(string symbol, NodePtr left, NodePtr right)
+            : symbol_(std::move(symbol)), left_(std::move(left)), right_(std::move(right)) {}
 
     template<typename L, typename R>
-    BinaryOperation(string symbol, const L &left, const R &right)
-            : symbol(std::move(symbol)), left(make_shared<L>(left)),
-              right(make_shared<R>(right)) {}
+    BinaryOperation(string symbol, const L& left, const R& right)
+            : symbol_(std::move(symbol)), left_(std::make_shared<L>(left)),
+              right_(std::make_shared<R>(right)) {}
 
     template<typename R>
-    BinaryOperation(string symbol, const number left, const R &right)
-            : symbol(std::move(symbol)), left(make_shared<Number>(Number(left))),
-              right(make_shared<R>(right)) {}
+    BinaryOperation(string symbol, number left, const R& right)
+            : symbol_(std::move(symbol)), left_(std::make_shared<Number>(left)),
+              right_(std::make_shared<R>(right)) {}
 
     template<typename L>
-    BinaryOperation(string symbol, const L &left, const number right)
-            : symbol(std::move(symbol)), left(make_shared<L>(left)),
-              right(make_shared<Number>(Number(right))) {}
+    BinaryOperation(string symbol, const L& left, number right)
+            : symbol_(std::move(symbol)), left_(std::make_shared<L>(left)),
+              right_(std::make_shared<Number>(right)) {}
 
-    BinaryOperation(string symbol, const number left, const number right)
-            : symbol(std::move(symbol)), left(make_shared<Number>(Number(left))),
-              right(make_shared<Number>(Number(right))) {}
+    BinaryOperation(string symbol, number left, number right)
+            : symbol_(std::move(symbol)), left_(std::make_shared<Number>(left)),
+              right_(std::make_shared<Number>(right)) {}
 
-    string toString() override {
-        return "(" + left->toString() + symbol + right->toString() + ")";
+    [[nodiscard]] string toString() const override {
+        return "(" + left_->toString() + symbol_ + right_->toString() + ")";
     }
 
-    shared_ptr<Node> &getLeft() { return left; }
+    [[nodiscard]] virtual string toCppCode() const override {
+        const string leftCode = left_ ? left_->toCppCode() : "0.0L";
+        const string rightCode = right_ ? right_->toCppCode() : "0.0L";
+        return "(" + leftCode + " " + getCppOperator() + " " + rightCode + ")";
+    }
 
-    void setLeft(shared_ptr<Node> node) { left = std::move(node); }
+    [[nodiscard]] NodePtr getLeft() const noexcept { return left_; }
+    void setLeft(NodePtr node) noexcept { left_ = std::move(node); }
 
-    shared_ptr<Node> &getRight() { return right; }
+    [[nodiscard]] NodePtr getRight() const noexcept { return right_; }
+    void setRight(NodePtr node) noexcept { right_ = std::move(node); }
 
-    void setRight(shared_ptr<Node> node) { right = std::move(node); }
-
-    number calculate() override = 0;
+    [[nodiscard]] number calculate() const override = 0;
 
 protected:
-    string symbol;
-    shared_ptr<Node> left;
-    shared_ptr<Node> right;
+    virtual string getCppOperator() const { return symbol_; }
+    string symbol_;
+    NodePtr left_;
+    NodePtr right_;
 };
 
 class Addition : public BinaryOperation {
 public:
-    Addition(std::shared_ptr<Node> left, std::shared_ptr<Node> right)
+    Addition(NodePtr left, NodePtr right)
         : BinaryOperation("+", std::move(left), std::move(right)) {}
 
-    number calculate() override { return left->calculate() + right->calculate(); }
+    template<typename L, typename R>
+    Addition(const L& left, const R& right)
+        : BinaryOperation("+", left, right) {}
 
-    std::shared_ptr<Node> simplify() const override {
-        auto leftS = left->simplify();
-        auto rightS = right->simplify();
+    [[nodiscard]] number calculate() const override { 
+        return left_->calculate() + right_->calculate(); 
+    }
 
+    [[nodiscard]] NodePtr simplify() const override {
+        auto leftS = left_->simplify();
+        auto rightS = right_->simplify();
+
+        // 0 + x = x
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (leftNum->calculate() == 0.0) return rightS;
+            if (std::abs(leftNum->calculate()) < EPSILON) return rightS;
         }
+        // x + 0 = x
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (rightNum->calculate() == 0.0) return leftS;
+            if (std::abs(rightNum->calculate()) < EPSILON) return leftS;
         }
+        // Constant folding: number + number = result
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
                 return std::make_shared<Number>(leftNum->calculate() + rightNum->calculate());
@@ -82,18 +101,26 @@ public:
 
 class Subtraction : public BinaryOperation {
 public:
-    Subtraction(std::shared_ptr<Node> left, std::shared_ptr<Node> right)
+    Subtraction(NodePtr left, NodePtr right)
         : BinaryOperation("-", std::move(left), std::move(right)) {}
 
-    number calculate() override { return left->calculate() - right->calculate(); }
+    template<typename L, typename R>
+    Subtraction(const L& left, const R& right)
+        : BinaryOperation("-", left, right) {}
 
-    std::shared_ptr<Node> simplify() const override {
-        auto leftS = left->simplify();
-        auto rightS = right->simplify();
+    [[nodiscard]] number calculate() const override { 
+        return left_->calculate() - right_->calculate(); 
+    }
 
+    [[nodiscard]] NodePtr simplify() const override {
+        auto leftS = left_->simplify();
+        auto rightS = right_->simplify();
+
+        // x - 0 = x
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (rightNum->calculate() == 0.0) return leftS;
+            if (std::abs(rightNum->calculate()) < EPSILON) return leftS;
         }
+        // Constant folding
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
                 return std::make_shared<Number>(leftNum->calculate() - rightNum->calculate());
@@ -105,23 +132,31 @@ public:
 
 class Multiplication : public BinaryOperation {
 public:
-    Multiplication(std::shared_ptr<Node> left, std::shared_ptr<Node> right)
+    Multiplication(NodePtr left, NodePtr right)
         : BinaryOperation("*", std::move(left), std::move(right)) {}
 
-    number calculate() override { return left->calculate() * right->calculate(); }
+    template<typename L, typename R>
+    Multiplication(const L& left, const R& right)
+        : BinaryOperation("*", left, right) {}
 
-    std::shared_ptr<Node> simplify() const override {
-        auto leftS = left->simplify();
-        auto rightS = right->simplify();
+    [[nodiscard]] number calculate() const override { 
+        return left_->calculate() * right_->calculate(); 
+    }
 
+    [[nodiscard]] NodePtr simplify() const override {
+        auto leftS = left_->simplify();
+        auto rightS = right_->simplify();
+
+        // 0 * x = 0, x * 0 = 0
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (leftNum->calculate() == 0.0) return leftS;
-            if (leftNum->calculate() == 1.0) return rightS;
+            if (std::abs(leftNum->calculate()) < EPSILON) return leftS;
+            if (std::abs(leftNum->calculate() - 1.0L) < EPSILON) return rightS;
         }
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (rightNum->calculate() == 0.0) return rightS;
-            if (rightNum->calculate() == 1.0) return leftS;
+            if (std::abs(rightNum->calculate()) < EPSILON) return rightS;
+            if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) return leftS;
         }
+        // Constant folding
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
                 return std::make_shared<Number>(leftNum->calculate() * rightNum->calculate());
@@ -133,24 +168,40 @@ public:
 
 class Division : public BinaryOperation {
 public:
-    Division(std::shared_ptr<Node> left, std::shared_ptr<Node> right)
+    Division(NodePtr left, NodePtr right)
         : BinaryOperation("/", std::move(left), std::move(right)) {}
 
-    number calculate() override { return left->calculate() / right->calculate(); }
+    template<typename L, typename R>
+    Division(const L& left, const R& right)
+        : BinaryOperation("/", left, right) {}
 
-    std::shared_ptr<Node> simplify() const override {
-        auto leftS = left->simplify();
-        auto rightS = right->simplify();
+    [[nodiscard]] number calculate() const override { 
+        const auto divisor = right_->calculate();
+        if (std::abs(divisor) < DIVISION_BY_ZERO_THRESHOLD) {
+            return std::numeric_limits<number>::quiet_NaN();
+        }
+        return left_->calculate() / divisor; 
+    }
 
+    [[nodiscard]] NodePtr simplify() const override {
+        auto leftS = left_->simplify();
+        auto rightS = right_->simplify();
+
+        // x / 1 = x
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (rightNum->calculate() == 1.0) return leftS;
+            if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) return leftS;
         }
+        // 0 / x = 0 (if x != 0)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (leftNum->calculate() == 0.0) return leftS;
+            if (std::abs(leftNum->calculate()) < EPSILON) return leftS;
         }
+        // Constant folding
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-                return std::make_shared<Number>(leftNum->calculate() / rightNum->calculate());
+                const auto divisor = rightNum->calculate();
+                if (std::abs(divisor) > DIVISION_BY_ZERO_THRESHOLD) {
+                    return std::make_shared<Number>(leftNum->calculate() / divisor);
+                }
             }
         }
         return std::make_shared<Division>(leftS, rightS);
@@ -159,25 +210,60 @@ public:
 
 class Power : public BinaryOperation {
 public:
-    Power(std::shared_ptr<Node> left, std::shared_ptr<Node> right)
+    Power(NodePtr left, NodePtr right)
         : BinaryOperation("^", std::move(left), std::move(right)) {}
 
-    number calculate() override { return std::pow(left->calculate(), right->calculate()); }
+    template<typename L, typename R>
+    Power(const L& left, const R& right)
+        : BinaryOperation("^", left, right) {}
 
-    std::shared_ptr<Node> simplify() const override {
-        auto leftS = left->simplify();
-        auto rightS = right->simplify();
+    [[nodiscard]] number calculate() const override { 
+        const auto base = left_->calculate();
+        const auto exponent = right_->calculate();
+        
+        // Handle special cases
+        if (std::isnan(base) || std::isnan(exponent)) {
+            return std::numeric_limits<number>::quiet_NaN();
+        }
+        
+        return std::pow(base, exponent); 
+    }
 
+    [[nodiscard]] string toCppCode() const override {
+        const string leftCode = left_ ? left_->toCppCode() : "0.0L";
+        const string rightCode = right_ ? right_->toCppCode() : "0.0L";
+        return "std::pow(" + leftCode + ", " + rightCode + ")";
+    }
+
+    [[nodiscard]] NodePtr simplify() const override {
+        auto leftS = left_->simplify();
+        auto rightS = right_->simplify();
+
+        // x^0 = 1, x^1 = x
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (rightNum->calculate() == 0.0) return std::make_shared<Number>(1.0);
-            if (rightNum->calculate() == 1.0) return leftS;
+            if (std::abs(rightNum->calculate()) < EPSILON) {
+                return std::make_shared<Number>(1.0L);
+            }
+            if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) {
+                return leftS;
+            }
         }
+        // 0^x = 0 (for x > 0), 1^x = 1
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (leftNum->calculate() == 0.0) return std::make_shared<Number>(0.0);
+            if (std::abs(leftNum->calculate()) < EPSILON) {
+                return leftS; // 0^x = 0
+            }
+            if (std::abs(leftNum->calculate() - 1.0L) < EPSILON) {
+                return leftS; // 1^x = 1
+            }
         }
+        // Constant folding
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-                return std::make_shared<Number>(std::pow(leftNum->calculate(), rightNum->calculate()));
+                const auto result = std::pow(leftNum->calculate(), rightNum->calculate());
+                if (std::isfinite(result)) {
+                    return std::make_shared<Number>(result);
+                }
             }
         }
         return std::make_shared<Power>(leftS, rightS);

@@ -3,7 +3,7 @@
 
 #include "changer-base.hpp"
 #include <cmath>
-#include <cfloat>
+#include <limits>
 
 class IncrementorByFragment : public Changer {
 public:
@@ -12,23 +12,25 @@ public:
     template<typename C>
     explicit IncrementorByFragment(C &coin) : Changer(coin) {}
 
-    Formula change(Formula &formula) override {
-        for (auto val: formula.getNumbers()) {
-            number current = val->calculate();
-            if (coin->toss()) {
+    [[nodiscard]] Formula change(const Formula& formula) const override {
+        Formula result = formula; // Make a copy
+        for (auto* val : result.getNumbers()) {
+            const number current = val->calculate();
+            if (coin_->toss()) {
                 int exponent;
-                number mantissa = frexp(current, &exponent);
-                if (mantissa == 0) {
-                    val->setValue(DBL_MIN);
+                number mantissa = std::frexp(current, &exponent);
+                if (mantissa == 0.0L) {
+                    val->setValue(std::numeric_limits<number>::min());
+                } else {
+                    mantissa += std::numeric_limits<number>::epsilon();
+                    val->setValue(std::ldexp(mantissa, exponent));
                 }
-                mantissa += DBL_EPSILON;
-                val->setValue(ldexp(mantissa, exponent));
             }
         }
-        return formula;
+        return result;
     }
 
-    ChangerType getType() override {
+    [[nodiscard]] ChangerType getType() const noexcept override {
         return ChangerType::INCREMENTOR_BY_FRAGMENT;
     }
 };

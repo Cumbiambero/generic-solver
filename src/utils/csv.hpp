@@ -4,32 +4,40 @@
 #include "base.hpp"
 #include "config.hpp"
 #include <fstream>
+#include <stdexcept>
 
-using namespace std;
-
-[[nodiscard]] vector<vector<number>> parseCSV(const string &path) {
-    ifstream input{path};
+[[nodiscard]] vector<vector<number>> parseCSV(const string& path) {
+    std::ifstream input{path};
     if (!input.is_open()) {
-        throw invalid_argument("Couldn't read file: " + path);
+        throw std::invalid_argument("Couldn't read file: " + path);
     }
+    
     vector<vector<number>> result;
+    result.reserve(1000); // Reserve space for better performance
 
-    for (string line; getline(input, line);) {
-        istringstream ss(std::move(line));
+    for (string line; std::getline(input, line);) {
+        if (line.empty()) continue; // Skip empty lines
+        
+        std::istringstream ss(std::move(line));
         vector<number> row;
+        
         if (!result.empty()) {
             row.reserve(result.front().size());
         }
-        for (string value; getline(ss, value, CSV_DELIMITER);) {
+        
+        for (string value; std::getline(ss, value, CSV_DELIMITER);) {
             try {
-                row.push_back(stod(value));
-            } catch (...) {
-                throw invalid_argument("Incorrect content detected: " + value);
+                row.emplace_back(std::stold(value));
+            } catch (const std::exception&) {
+                throw std::invalid_argument("Incorrect content detected: " + value);
             }
         }
-        result.push_back(std::move(row));
+        
+        if (!row.empty()) {
+            result.emplace_back(std::move(row));
+        }
     }
-    input.close();
+    
     return result;
 }
 

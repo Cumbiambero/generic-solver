@@ -12,12 +12,13 @@ public:
     explicit Purger(C &coin, R &randomNumber) : Changer(coin), operationProducer(
             make_shared<OperationProducer>(OperationProducer(randomNumber))) {}
 
-    Formula change(Formula &formula) override {
-        formula.setRoot(operationProducer->produce(formula.getVariables()));
-        return formula;
+    [[nodiscard]] Formula change(const Formula& formula) const override {
+        Formula result = formula;
+        result.setRoot(operationProducer->produce(formula.getVariables()));
+        return result;
     }
 
-    ChangerType getType() override {
+    [[nodiscard]] ChangerType getType() const noexcept override {
         return ChangerType::PURGER;
     }
 private:

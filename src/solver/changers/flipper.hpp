@@ -8,20 +8,21 @@ public:
     Flipper() : Changer() {}
 
     template<typename C>
-    explicit Flipper(C &coin) : Changer(coin) {}
+    explicit Flipper(C& coin) : Changer(coin) {}
 
-    Formula change(Formula &formula) override {
-        for (auto binary: formula.getBinaryOperators()) {
-            if (coin->toss()) {
+    [[nodiscard]] Formula change(const Formula& formula) const override {
+        Formula result = formula; // Make a copy
+        for (auto* binary : result.getBinaryOperators()) {
+            if (coin_->toss()) {
                 auto temp = binary->getRight();
                 binary->setRight(binary->getLeft());
                 binary->setLeft(temp);
             }
         }
-        return formula;
+        return result;
     }
 
-    ChangerType getType() override {
+    [[nodiscard]] ChangerType getType() const noexcept override {
         return ChangerType::FLIPPER;
     }
 };

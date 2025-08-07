@@ -10,18 +10,18 @@ public:
     template<typename C, typename N>
     explicit OperationReplacer(C &coin, N &randomNumber) : Creator(coin, randomNumber) {}
 
-    Formula change(Formula &formula) override {
+    [[nodiscard]] Formula change(const Formula& formula) const override {
         Formula result(formula);
         traverse(result.getRoot());
         return result;
     }
 
-    ChangerType getType() override {
+    [[nodiscard]] ChangerType getType() const noexcept override {
         return ChangerType::OPERATION_REPLACER;
     }
 
 private:
-    void traverse(shared_ptr<Node> node) {
+    void traverse(shared_ptr<Node> node) const {
         if (node == nullptr) {
             return;
         }
@@ -32,19 +32,19 @@ private:
         auto *binary = dynamic_cast<BinaryOperation *>(node.get());
         if (binary == nullptr) {
             auto *unary = dynamic_cast<UnaryOperation *>(node.get());
-            if (unary != nullptr && coin->toss()) {
+            if (unary != nullptr && coin_->toss()) {
                 auto created = operationProducer->createUnaryOperation(unary->getOperand());
                 node.swap(created);
-                if (coin->toss()) {
+                if (coin_->toss()) {
                     return;
                 }
                 traverse(unary->getOperand());
             }
         } else {
-            if (coin->toss()) {
+            if (coin_->toss()) {
                 auto created = operationProducer->createBinaryOperation(binary->getLeft(), binary->getRight());
                 node.swap(created);
-                if (coin->toss()) {
+                if (coin_->toss()) {
                     return;
                 }
             }

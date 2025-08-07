@@ -1,15 +1,28 @@
 #ifndef GENERIC_SOLVER_CONFIG_HPP
 #define GENERIC_SOLVER_CONFIG_HPP
 
-static const char CSV_DELIMITER = ',';
-static const double ALMOST_PERFECT = 0.9999999999;
-static const double EPSILON_FOR_RATE = 1 - ALMOST_PERFECT;
-static const unsigned int SOLUTIONS_SIZE = 1000;
-static const unsigned short HALL_OF_FAME_SIZE = 3;
-static const unsigned short FORMULA_WIDTH = 70;
-static const unsigned short FORMULA_NUMBER_PRECISION = 8;
-static const unsigned short NUMBER_OF_RESULTS = 20;
-static const unsigned short RATE_WIDTH = 10;
-static const unsigned short RATE_PRECISION = RATE_WIDTH - 2;
+#include <cstdint>
+
+// CSV parsing
+static constexpr char CSV_DELIMITER = ',';
+
+// Algorithm tuning
+static constexpr number ALMOST_PERFECT = 0.9999999999L;
+static constexpr number EPSILON_FOR_RATE = 1.0L - ALMOST_PERFECT;
+static constexpr std::size_t SOLUTIONS_SIZE = 1000;
+static constexpr std::size_t HALL_OF_FAME_SIZE = 3;
+static constexpr std::size_t STAGNATION_THRESHOLD = 500;
+static constexpr std::size_t RANDOM_INJECTION_COUNT = 1000;
+
+// Display formatting
+static constexpr std::size_t FORMULA_WIDTH = 70;
+static constexpr std::size_t FORMULA_NUMBER_PRECISION = 8;
+static constexpr std::size_t NUMBER_OF_RESULTS = 20;
+static constexpr std::size_t RATE_WIDTH = 10;
+static constexpr std::size_t RATE_PRECISION = RATE_WIDTH - 2;
+
+// Numerical stability
+static constexpr number EPSILON = 1e-6L;
+static constexpr number DIVISION_BY_ZERO_THRESHOLD = 1e-15L;
 
 #endif

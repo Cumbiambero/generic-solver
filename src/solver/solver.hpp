@@ -7,24 +7,33 @@
 #include <cmath>
 #include <thread>
 #include <utility>
+#include <atomic>
+#include <future>
+#include <algorithm>
+#include <execution>
+#include <set>
 
 class Solution {
 public:
-    Solution(const Formula &formula, ChangerType lastChanger, number rate)
-            : formula(formula), lastChanger(lastChanger), rate(rate) {}
+    Solution(Formula formula, ChangerType lastChanger, number rate) noexcept
+            : formula_(std::move(formula)), lastChanger_(lastChanger), rate_(rate) {}
 
-    Solution(const Solution &copy) = default;
+    Solution(const Solution& copy) = default;
+    Solution(Solution&& other) noexcept = default;
+    Solution& operator=(const Solution& other) = default;
+    Solution& operator=(Solution&& other) noexcept = default;
 
-    bool operator<(const Solution &other) const {
-        return compare(this, &other);
+    [[nodiscard]] bool operator<(const Solution& other) const noexcept {
+        return compare(*this, other);
     }
 
-    static bool compare(const Solution *a, const Solution *b) {
-        if (a->rate < b->rate) {
+    [[nodiscard]] static bool compare(const Solution& a, const Solution& b) noexcept {
+        if (a.rate_ < b.rate_) {
             return true;
-        } else if (std::fabs(a->rate - b->rate) < EPSILON_FOR_RATE) {
-            auto aString = a->getFormula().toString();
-            auto bString = b->getFormula().toString();
+        } 
+        if (std::abs(a.rate_ - b.rate_) < EPSILON_FOR_RATE) {
+            const auto aString = a.getFormula().toString();
+            const auto bString = b.getFormula().toString();
             if (aString != bString) {
                 return aString.size() > bString.size();
             }
@@ -32,222 +41,315 @@ public:
         return false;
     }
 
-    [[nodiscard]] Formula getFormula() const { return formula; }
-
-    [[nodiscard]] ChangerType getLastChanger() const { return lastChanger; }
-
-    [[nodiscard]] number getRate() const { return rate; }
+    [[nodiscard]] const Formula& getFormula() const noexcept { return formula_; }
+    [[nodiscard]] ChangerType getLastChanger() const noexcept { return lastChanger_; }
+    [[nodiscard]] number getRate() const noexcept { return rate_; }
 
 private:
-    Formula formula;
-    ChangerType lastChanger;
-    number rate;
+    Formula formula_;
+    ChangerType lastChanger_;
+    number rate_;
 };
 
 class Evaluator {
 public:
-    static number rate(Formula &formula, const vector<vector<number>> &input, const vector<vector<number>> &expected) {
-        number result = 0;
-        number records = 0;
+    [[nodiscard]] static number rate(const Formula& formula, 
+                                   const vector<vector<number>>& input, 
+                                   const vector<vector<number>>& expected) {
+        if (input.size() != expected.size()) {
+            return 0.0L;
+        }
+
+        number result = 0.0L;
+        const auto records = static_cast<number>(expected.size());
         bool allPerfect = true;
-        for (auto l = 0; l < expected.size(); l++) {
-            ++records;
-            const auto& inputRow = input[l];
+        
+        // Create a non-const copy for evaluation
+        Formula mutableFormula = formula;
+        
+        for (std::size_t i = 0; i < expected.size(); ++i) {
+            const auto& inputRow = input[i];
             number currentResult;
-            switch (inputRow.size()) {
-                case 1: currentResult = formula.evaluate(inputRow[0]); break;
-                case 2: currentResult = formula.evaluate(inputRow[0], inputRow[1]); break;
-                case 3: currentResult = formula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
-                case 4: currentResult = formula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
-                default: throw std::runtime_error("Too many variables for formula.evaluate");
+            
+            try {
+                switch (inputRow.size()) {
+                    case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
+                    case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
+                    case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                    case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                    default: 
+                        throw std::runtime_error("Too many variables for formula.evaluate");
+                }
+            } catch (...) {
+                return 0.0L; // Any evaluation error results in zero fitness
             }
 
             // Penalize any invalid result
-            if (std::isnan(currentResult) || std::isinf(currentResult)) {
-                return 0.0;
+            if (!std::isfinite(currentResult)) {
+                return 0.0L;
             }
 
-            number expectedResult = expected[l][0];
-            const double EPSILON = 1e-6;
+            const number expectedResult = expected[i][0];
             if (std::abs(expectedResult - currentResult) < EPSILON) {
-                ++result;
+                result += 1.0L;
             } else {
                 allPerfect = false;
-                number increment;
-                auto absCurrent = abs(currentResult);
-                auto absExpected = abs(expectedResult);
-                auto dividend(min(absExpected, absCurrent));
-                auto divisor(max(absExpected, absCurrent));
-                if (divisor == 0) {
-                    increment = dividend == 1 ? 0.5 : 1 / dividend;
-                } else if (dividend == 0) {
-                    increment = divisor == 1 ? 0.5 : 1 / divisor;
-                } else {
-                    increment = dividend / divisor;
-                }
-                result += increment < 1 ? increment : 1 / increment;
+                result += calculatePartialFitness(currentResult, expectedResult);
             }
         }
 
-        number rate = result / records;
-        if (allPerfect) return 1.0;
-        if (rate > 0.999999) return 0.999999; 
-        return rate;
+        const number finalRate = result / records;
+        return allPerfect ? 1.0L : std::min(finalRate, 0.999999L);
+    }
+
+private:
+    [[nodiscard]] static number calculatePartialFitness(number current, number expected) noexcept {
+        const auto absCurrent = std::abs(current);
+        const auto absExpected = std::abs(expected);
+        const auto dividend = std::min(absExpected, absCurrent);
+        const auto divisor = std::max(absExpected, absCurrent);
+        
+        if (divisor < EPSILON) {
+            return dividend < 1.0L ? 0.5L : 1.0L / dividend;
+        }
+        if (dividend < EPSILON) {
+            return divisor < 1.0L ? 0.5L : 1.0L / divisor;
+        }
+        
+        const number increment = dividend / divisor;
+        return increment < 1.0L ? increment : 1.0L / increment;
     }
 };
 
 class Solver {
 public:
-    Solver(vector<Variable> variables, const vector<vector<number>> &input, const vector<vector<number>> &results)
-            : variables(std::move(variables)), input(input), results(results),
-              cores(max((unsigned int) 1, thread::hardware_concurrency() - 1)),
-              currentState(SolverState::READY) {}
+    Solver(vector<Variable> variables, vector<vector<number>> input, vector<vector<number>> results)
+            : variables_(std::move(variables)), 
+              input_(std::move(input)), 
+              results_(std::move(results)),
+              cores_(std::max(1u, std::thread::hardware_concurrency() - 1)),
+              currentState_(SolverState::READY) {}
 
     void start() {
-        if (currentState == SolverState::READY) {
-            auto node = operationProducer.produce(variables);
-            Formula formula(node, variables);
-            solutions.insert(Solution(formula, ChangerType::FLIPPER, Evaluator::rate(formula, input, results)));
+        if (currentState_ == SolverState::READY) {
+            auto node = operationProducer_.produce(variables_);
+            Formula formula(node, variables_);
+            const auto rate = Evaluator::rate(formula, input_, results_);
+            
+            std::unique_lock lock(solutionsMutex_);
+            solutions_.emplace(std::move(formula), ChangerType::FLIPPER, rate);
+            lock.unlock();
         }
-        currentState = SolverState::RUNNING;
+        
+        currentState_ = SolverState::RUNNING;
 
-        vector<thread> workers;
-        for (auto i = 0; i < cores; ++i) {
+        vector<std::thread> workers;
+        workers.reserve(cores_);
+        
+        for (std::size_t i = 0; i < cores_; ++i) {
             workers.emplace_back([this]() { work(); });
         }
+        
         for (auto& worker : workers) {
             worker.join();
         }
-        if (currentState == SolverState::DONE) {
+        
+        if (currentState_ == SolverState::DONE) {
             print();
-            exit(0);
+            std::exit(0);
         }
     }
 
-    void print() {
-        cout << "\nMatches:\n";
-        printSolutions(hallOfFame);
-        cout << "\nPrevious intentions:\n";
-        printSolutions(solutions);
+    void print() const {
+        std::cout << "\nMatches:\n";
+        printSolutions(hallOfFame_);
+        std::cout << "\nPrevious intentions:\n";
+        printSolutions(solutions_);
     }
 
-    static void printSolutions(set<Solution> &target, short numberOfResults = NUMBER_OF_RESULTS) {
-        cout.width(FORMULA_WIDTH);
-        cout << left << "Formula:";
-        cout.width(RATE_WIDTH);
-        cout << right << "Rate:" << endl;
-        cout.width(0);
-        short counter = 0;
-        for (auto revIt = target.rbegin(); revIt != target.rend() && counter < numberOfResults; revIt++) {
-            cout.width(FORMULA_WIDTH);
-            cout << left << revIt->getFormula().toString();
-            cout.width(RATE_WIDTH);
-            cout << right << fixed << setprecision(RATE_PRECISION) << revIt->getRate() << endl;
-            ++counter;
+    static void printSolutions(const std::set<Solution>& target, 
+                             std::size_t numberOfResults = NUMBER_OF_RESULTS) {
+        std::cout.width(FORMULA_WIDTH);
+        std::cout << std::left << "Formula:";
+        std::cout.width(RATE_WIDTH);
+        std::cout << std::right << "Rate:" << std::endl;
+        std::cout.width(0);
+        
+        std::size_t counter = 0;
+        for (auto revIt = target.rbegin(); 
+             revIt != target.rend() && counter < numberOfResults; 
+             ++revIt, ++counter) {
+            std::cout.width(FORMULA_WIDTH);
+            std::cout << std::left << revIt->getFormula().toString();
+            std::cout.width(RATE_WIDTH);
+            std::cout << std::right << std::fixed 
+                      << std::setprecision(RATE_PRECISION) << revIt->getRate() << std::endl;
+        }
+        
+        // Print C++ code section
+        if (!target.empty()) {
+            std::cout << "\nC++ Code (for integration):" << std::endl;
+            counter = 0;
+            for (auto revIt = target.rbegin(); 
+                 revIt != target.rend() && counter < numberOfResults; 
+                 ++revIt, ++counter) {
+                std::cout << "// Formula " << (counter + 1) << ": " 
+                          << revIt->getFormula().toString() << std::endl;
+                std::cout << "long double result = " 
+                          << revIt->getFormula().toCppCode() << ";" << std::endl;
+                std::cout << std::endl;
+            }
         }
     }
 
-    [[nodiscard]] SolverState getState() const {
-        return currentState;
+    [[nodiscard]] SolverState getState() const noexcept {
+        return currentState_.load();
     }
 
     void shrink() {
-        auto size = solutions.size();
-        if (solutions.size() > SOLUTIONS_SIZE) {
-            auto rBegin = solutions.rbegin();
-            auto rEnd = solutions.rend();
-            advance(rBegin, SOLUTIONS_SIZE);
-            auto from = --rBegin.base();
-            auto to = --rEnd.base();
-            solutions.erase(from, to);
+        std::unique_lock lock(solutionsMutex_);
+        const auto originalSize = solutions_.size();
+        
+        if (originalSize > SOLUTIONS_SIZE) {
+            auto rBegin = solutions_.rbegin();
+            std::advance(rBegin, SOLUTIONS_SIZE);
+            auto from = rBegin.base();
+            solutions_.erase(solutions_.begin(), from);
         }
-        cout << solutions.size() - size << " solutions deleted.\n";
+        
+        lock.unlock();
+        std::cout << originalSize - solutions_.size() << " solutions deleted.\n";
     }
 
 private:
-    const vector<Variable> variables;
-    const vector<vector<number>> input;
-    const vector<vector<number>> results;
-    mutex lock;
-    ChangerPicker changerPicker;
-    Merger merger;
-    OperationProducer operationProducer;
-    SolverState currentState;
+    const vector<Variable> variables_;
+    const vector<vector<number>> input_;
+    const vector<vector<number>> results_;
+    
+    mutable std::shared_mutex solutionsMutex_;
+    mutable std::shared_mutex hallOfFameMutex_;
+    
+    ChangerPicker changerPicker_;
+    Merger merger_;
+    OperationProducer operationProducer_;
+    
+    std::atomic<std::size_t> cores_;
+    std::atomic<SolverState> currentState_;
+    std::atomic<std::size_t> pos_{0};
 
-    set<Solution> solutions;
-    set<Solution> hallOfFame;
-    unsigned int cores;
-    atomic<unsigned int> pos = 0;
+    std::set<Solution> solutions_;
+    std::set<Solution> hallOfFame_;
 
     void work() {
-        int stagnationCounter = 0;
-        number lastBestRate = 0.0;
-        while (currentState == SolverState::RUNNING) {
+        std::size_t stagnationCounter = 0;
+        number lastBestRate = 0.0L;
+        
+        while (currentState_.load() == SolverState::RUNNING) {
             auto changer = pickChanger();
-            auto reverseIterator = solutions.rbegin();
-            Formula bestFormula((*reverseIterator).getFormula());
-            auto shift = merger.getCoin()->toss() ? 1 : solutions.size() >> 1;
-            advance(reverseIterator, shift);
-            Formula existingFormula((*reverseIterator).getFormula());
-            if (changer == nullptr) {
-                auto formula = merger.merge(bestFormula, existingFormula);
-                storeSolution(ChangerType::MERGER, formula);
-            } else {
-                auto formula = changer->change(merger.getCoin()->toss() ? bestFormula : existingFormula);
-                storeSolution(changer->getType(), formula);
+            
+            std::shared_lock readLock(solutionsMutex_);
+            if (solutions_.empty()) {
+                readLock.unlock();
+                continue;
             }
+            
+            const Formula bestFormula = solutions_.rbegin()->getFormula();
+            const auto shift = merger_.getCoin()->toss() ? 1 : solutions_.size() >> 1;
+            auto reverseIterator = solutions_.rbegin();
+            std::advance(reverseIterator, std::min(shift, solutions_.size() - 1));
+            const Formula existingFormula = reverseIterator->getFormula();
+            readLock.unlock();
+            
+            Formula newFormula = (changer == nullptr) 
+                ? merger_.merge(bestFormula, existingFormula)
+                : changer->change(merger_.getCoin()->toss() ? bestFormula : existingFormula);
+                
+            const auto changerType = changer ? changer->getType() : ChangerType::MERGER;
+            storeSolution(changerType, newFormula);
 
-            // stagnation detection
-            number currentBestRate = solutions.rbegin()->getRate();
-            if (std::abs(currentBestRate - lastBestRate) < 1e-8) {
-                stagnationCounter++;
+            // Stagnation detection and handling
+            std::shared_lock bestRateReadLock(solutionsMutex_);
+            const number currentBestRate = solutions_.empty() ? 0.0L : solutions_.rbegin()->getRate();
+            bestRateReadLock.unlock();
+            
+            if (std::abs(currentBestRate - lastBestRate) < 1e-8L) {
+                ++stagnationCounter;
             } else {
                 stagnationCounter = 0;
                 lastBestRate = currentBestRate;
             }
-            // inject randomness
-            if (stagnationCounter > 500) {
-                lock.lock();
-                auto best = *solutions.rbegin();
-                solutions.clear();
-                solutions.insert(best);
-                for (int i = 0; i < 1000; ++i) {
-                    auto node = operationProducer.produce(variables);
-                    Formula randomFormula(node, variables);
-                    storeSolution(ChangerType::FLIPPER, randomFormula);
-                }
-                lock.unlock();
+            
+            // Inject randomness when stagnated
+            if (stagnationCounter > STAGNATION_THRESHOLD) {
+                injectRandomness();
                 stagnationCounter = 0;
             }
         }
     }
 
-    void storeSolution(ChangerType type, Formula &formula) {
-        lock.lock();
-        auto rate = Evaluator::rate(formula, input, results);
-        auto solution = Solution(formula, type, rate);
+    void storeSolution(ChangerType type, const Formula& formula) {
+        const auto rate = Evaluator::rate(formula, input_, results_);
+        Solution solution(formula, type, rate);
+        
         if (rate > ALMOST_PERFECT) {
-            hallOfFame.insert(solution);
-            if (hallOfFame.size() >= HALL_OF_FAME_SIZE) {
-                currentState = SolverState::DONE;
+            std::unique_lock hallLock(hallOfFameMutex_);
+            hallOfFame_.insert(solution);
+            if (hallOfFame_.size() >= HALL_OF_FAME_SIZE) {
+                currentState_ = SolverState::DONE;
             }
+            hallLock.unlock();
         }
-        solutions.insert(solution);
+        
+        std::unique_lock solutionsLock(solutionsMutex_);
+        solutions_.insert(std::move(solution));
+        solutionsLock.unlock();
+    }
+
+    void injectRandomness() {
+        std::unique_lock lock(solutionsMutex_);
+        if (solutions_.empty()) {
+            lock.unlock();
+            return;
+        }
+        
+        const Solution best = *solutions_.rbegin();
+        solutions_.clear();
+        solutions_.insert(best);
+        
+        for (std::size_t i = 0; i < RANDOM_INJECTION_COUNT; ++i) {
+            auto node = operationProducer_.produce(variables_);
+            Formula randomFormula(node, variables_);
+            const auto rate = Evaluator::rate(randomFormula, input_, results_);
+            solutions_.emplace(std::move(randomFormula), ChangerType::FLIPPER, rate);
+        }
         lock.unlock();
     }
 
-    Changer *pickChanger() {
-        auto it = solutions.begin();
-        if (merger.getCoin()->toss()) {
-            return changerPicker.pickRandomChanger();
-        } else if (solutions.size() > 1) {
-            return nullptr;
+    [[nodiscard]] Changer* pickChanger() {
+        std::shared_lock lock(solutionsMutex_);
+        if (solutions_.empty()) {
+            lock.unlock();
+            return changerPicker_.pickRandomChanger();
         }
-
-        advance(it, operationProducer.getRandomNumber()->calculate(0, min((int) solutions.size() - 1,
-                                                                          (int) atomic_load(&pos))));
-        Changer *changer = changerPicker.pickChanger((*it).getLastChanger());
-        return changer;
+        
+        if (merger_.getCoin()->toss()) {
+            lock.unlock();
+            return changerPicker_.pickRandomChanger();
+        }
+        
+        if (solutions_.size() <= 1) {
+            lock.unlock();
+            return nullptr; // Use merger
+        }
+        
+        auto it = solutions_.begin();
+        const auto maxPos = std::min(static_cast<std::size_t>(solutions_.size() - 1), pos_.load());
+        const auto randomPos = operationProducer_.getRandomNumber()->calculate(0, static_cast<int>(maxPos));
+        std::advance(it, randomPos);
+        const auto changerType = it->getLastChanger();
+        lock.unlock();
+        
+        return changerPicker_.pickChanger(changerType);
     }
 };
 

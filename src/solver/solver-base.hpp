@@ -6,6 +6,7 @@
 #include "../utils/config.hpp"
 #include "changers/changers.hpp"
 #include "creators/creators.hpp"
+#include <unordered_map>
 
 enum class SolverState {
     READY,
@@ -15,41 +16,44 @@ enum class SolverState {
 
 class ChangerPicker {
 public:
-    ChangerPicker() : coin(make_shared<RandomCoin>()), randomNumber(make_shared<AlmostRandomNumber>()) {
+    ChangerPicker() : coin_(make_shared<RandomCoin>()), randomNumber_(make_shared<AlmostRandomNumber>()) {
         init();
     }
 
-    Changer *pickChanger(const ChangerType changerType) {
-        return coin->toss() ? changers[changerType].get() : pickRandomChanger();
+    [[nodiscard]] Changer* pickChanger(ChangerType changerType) const {
+        return coin_->toss() ? changers_.at(changerType).get() : pickRandomChanger();
     }
 
-    Changer *pickRandomChanger() {
-        auto it = changers.begin();
-        std::advance(it, randomNumber->calculate(0, changers.size() - 1) % changers.size());
+    [[nodiscard]] Changer* pickRandomChanger() const {
+        if (changers_.empty()) return nullptr;
+        
+        const auto index = randomNumber_->calculate(0, static_cast<int>(changers_.size()) - 1);
+        auto it = changers_.begin();
+        std::advance(it, static_cast<size_t>(index) % changers_.size());
         return it->second.get();
     }
 
 private:
-    map<ChangerType, unique_ptr<Changer>> changers;
-    shared_ptr<RandomNumber> randomNumber;
-    shared_ptr<Coin> coin;
+    std::unordered_map<ChangerType, std::unique_ptr<Changer>> changers_;
+    shared_ptr<Coin> coin_;
+    shared_ptr<RandomNumber> randomNumber_;
 
     void init() {
         initChangers();
     }
 
     void initChangers() {
-        changers[ChangerType::FLIPPER] = make_unique<Flipper>();
-        changers[ChangerType::INCREMENTOR_BY_ONE] = make_unique<IncrementorByOne>();
-        changers[ChangerType::INCREMENTOR_BY_DOUBLING] = make_unique<IncrementorByDoubling>();
-        changers[ChangerType::INCREMENTOR_BY_FRAGMENT] = make_unique<IncrementorByFragment>();
-        changers[ChangerType::REDUCER_BY_ONE] = make_unique<ReducerByOne>();
-        changers[ChangerType::REDUCER_BY_HALVING] = make_unique<ReducerByHalving>();
-        changers[ChangerType::REDUCER_BY_FRAGMENT] = make_unique<ReducerByFragment>();
-        changers[ChangerType::NUMBER_INSERTER] = make_unique<NumberInserter>();
-        changers[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
-        changers[ChangerType::PURGER] = make_unique<Purger>();
-        changers[ChangerType::MERGER] = make_unique<OperationReplacer>(); // this is intentional
+        changers_[ChangerType::FLIPPER] = make_unique<Flipper>();
+        changers_[ChangerType::INCREMENTOR_BY_ONE] = make_unique<IncrementorByOne>();
+        changers_[ChangerType::INCREMENTOR_BY_DOUBLING] = make_unique<IncrementorByDoubling>();
+        changers_[ChangerType::INCREMENTOR_BY_FRAGMENT] = make_unique<IncrementorByFragment>();
+        changers_[ChangerType::REDUCER_BY_ONE] = make_unique<ReducerByOne>();
+        changers_[ChangerType::REDUCER_BY_HALVING] = make_unique<ReducerByHalving>();
+        changers_[ChangerType::REDUCER_BY_FRAGMENT] = make_unique<ReducerByFragment>();
+        changers_[ChangerType::NUMBER_INSERTER] = make_unique<NumberInserter>();
+        changers_[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
+        changers_[ChangerType::PURGER] = make_unique<Purger>();
+        changers_[ChangerType::MERGER] = make_unique<OperationReplacer>(); // this is intentional
     }
 };
 

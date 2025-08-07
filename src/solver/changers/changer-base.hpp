@@ -1,6 +1,9 @@
 #ifndef GENERIC_SOLVER_CHANGERS_CHANGER_BASE_HPP
 #define GENERIC_SOLVER_CHANGERS_CHANGER_BASE_HPP
 
+#include "../formula.hpp"
+#include "../../utils/arbitrary.hpp"
+
 enum class ChangerType {
     FLIPPER,
     INCREMENTOR_BY_DOUBLING,
@@ -17,19 +20,26 @@ enum class ChangerType {
 
 class Changer {
 public:
-    Changer() : coin(make_shared<RandomCoin>()) {}
+    Changer() : coin_(make_shared<RandomCoin>()) {}
 
     template<typename C>
-    explicit Changer(C &coin) : coin(make_shared<C>(coin)) {}
+    explicit Changer(C& coin) : coin_(make_shared<C>(coin)) {}
 
     virtual ~Changer() = default;
 
-    virtual Formula change(Formula &formula) = 0;
+    // Delete copy constructor and assignment to avoid issues with inheritance
+    Changer(const Changer&) = delete;
+    Changer& operator=(const Changer&) = delete;
+    
+    // Allow move semantics
+    Changer(Changer&&) = default;
+    Changer& operator=(Changer&&) = default;
 
-    virtual ChangerType getType() = 0;
+    [[nodiscard]] virtual Formula change(const Formula& formula) const = 0;
+    [[nodiscard]] virtual ChangerType getType() const noexcept = 0;
 
 protected:
-    shared_ptr<Coin> coin;
+    shared_ptr<Coin> coin_;
 };
 
 #endif

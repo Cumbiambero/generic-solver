@@ -10,16 +10,17 @@ public:
     template<typename C>
     explicit ReducerByHalving(C &coin) : Changer(coin) {}
 
-    Formula change(Formula &formula) override {
-        for (auto val: formula.getNumbers()) {
-            if (coin->toss()) {
-                val->setValue(val->calculate() / 2);
+    [[nodiscard]] Formula change(const Formula& formula) const override {
+        Formula result = formula; // Make a copy
+        for (auto* val : result.getNumbers()) {
+            if (coin_->toss()) {
+                val->setValue(val->calculate() / 2.0L);
             }
         }
-        return formula;
+        return result;
     }
 
-    ChangerType getType() override {
+    [[nodiscard]] ChangerType getType() const noexcept override {
         return ChangerType::REDUCER_BY_HALVING;
     }
 };

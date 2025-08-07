@@ -2,252 +2,277 @@
 #define GENERIC_SOLVER_FORMULA_HPP
 
 #include "../tree/tree.hpp"
-#include <map>
-#include <mutex>
-#include <set>
-
+#include <unordered_map>
+#include <unordered_set>
+#include <shared_mutex>
+#include <array>
 #include <iostream>
 #include <utility>
 
 class Formula {
 public:
     template<typename N>
-    Formula(N &node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
+    Formula(N& node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
 
     template<typename N>
-    Formula(N &node, const vector<Variable> &variables)
-            : variables(variables), root(make_shared<Wrapper>(Wrapper(node))) {
+    Formula(N& node, const vector<Variable>& variables)
+            : variables_(variables), root_(make_shared<Wrapper>(Wrapper(node))) {
         init(variables);
     }
 
-    Formula(const Formula &copy)
-            : variables(copy.variables),
-              root(createCopy(copy.root)) {
-        for (size_t i = 0; i < variables.size(); i++) {
-            variablePositions[i] = variableNames[variables[i].toString()];
+    Formula(const Formula& copy)
+            : variables_(copy.variables_),
+              root_(createCopy(copy.root_)) {
+        init(variables_);
+    }
+
+    Formula(Formula&& other) noexcept = default;
+    Formula& operator=(Formula&& other) noexcept = default;
+    Formula& operator=(const Formula& other) {
+        if (this != &other) {
+            variables_ = other.variables_;
+            root_ = createCopy(other.root_);
+            init(variables_);
         }
+        return *this;
     }
 
     virtual ~Formula() = default;
 
-    number evaluate(number params...) {
-        std::vector<number> values = {params};
-        size_t numberOfParams = values.size();
-        if (variableNames.size() != numberOfParams) {
-            throw invalid_argument("the number of params does not match with the number of params");
+    template<std::size_t N>
+    [[nodiscard]] number evaluate(const std::array<number, N>& params) const {
+        if (variableNames_.size() != N) {
+            throw std::invalid_argument("Parameter count mismatch");
         }
 
-        lock.lock();
-        if (!variablePositions.empty() && variablePositions.size() == values.size()) {
-            for (size_t i = 0; i < numberOfParams; i++) {
-                Variable *&variable = variablePositions[i];
-                if (variable == nullptr) {
-                    lock.unlock();
-                    return 0;
+        std::shared_lock lock(mutex_);
+        if (!variablePositions_.empty() && variablePositions_.size() == params.size()) {
+            for (std::size_t i = 0; i < N; i++) {
+                auto it = variablePositions_.find(i);
+                if (it != variablePositions_.end() && it->second) {
+                    it->second->setValue(params[i]);
                 }
-                variable->setValue(values[i]);
             }
         }
-        number result = root->calculate();
-        lock.unlock();
+        const number result = root_->calculate();
+        return std::isfinite(result) ? result : std::numeric_limits<number>::lowest();
+    }
 
-        if (result == INFINITY) {
-            result = std::numeric_limits<number>::lowest(); // not sure if this is a good idea
-        }
+    [[nodiscard]] number evaluate(number param1) const {
+        return evaluate(std::array<number, 1>{param1});
+    }
 
-        return result;
+    [[nodiscard]] number evaluate(number param1, number param2) const {
+        return evaluate(std::array<number, 2>{param1, param2});
+    }
+
+    [[nodiscard]] number evaluate(number param1, number param2, number param3) const {
+        return evaluate(std::array<number, 3>{param1, param2, param3});
+    }
+
+    [[nodiscard]] number evaluate(number param1, number param2, number param3, number param4) const {
+        return evaluate(std::array<number, 4>{param1, param2, param3, param4});
     }
 
     [[nodiscard]] string toString() const { 
-        root->simplify();
-        return root->toString();
-     }
-
-    [[nodiscard]] shared_ptr <Node> &getRoot() { return root; }
-
-    vector<BinaryOperation *> &getBinaryOperators() { return binaryOperators; }
-
-    [[nodiscard]] vector<Variable> getVariables() const {
-        return variables;
+        root_->simplify();
+        return root_->toString();
     }
 
-    vector<Number *> getNumbers() {
-        return this->numbers;
+    [[nodiscard]] NodePtr getRoot() const noexcept { return root_; }
+    void setRoot(NodePtr rootNode) noexcept { root_ = std::move(rootNode); }
+
+    [[nodiscard]] const vector<BinaryOperation*>& getBinaryOperators() const noexcept { 
+        return binaryOperators_; 
     }
 
-    bool operator==(const Formula &rhs) const {
-        return root->toString() == rhs.root->toString();
+    [[nodiscard]] const vector<Variable>& getVariables() const noexcept {
+        return variables_;
     }
 
-    bool operator!=(const Formula &rhs) const {
-        return !(rhs == *this);
+    [[nodiscard]] const vector<Number*>& getNumbers() const noexcept {
+        return numbers_;
     }
 
-    void setRoot(shared_ptr <Node> rootNode) {
-        this->root = rootNode;
+    [[nodiscard]] string toCppCode() const {
+        return root_ ? root_->toCppCode() : "0.0L";
+    }
+
+    [[nodiscard]] bool operator==(const Formula& rhs) const {
+        return root_->toString() == rhs.root_->toString();
+    }
+
+    [[nodiscard]] bool operator!=(const Formula& rhs) const {
+        return !(*this == rhs);
     }
 
 private:
-    mutex lock;
-    set<Constant *> constants;
-    vector<BinaryOperation *> binaryOperators;
-    vector<Number *> numbers;
-    map<size_t, Variable *> variablePositions;
-    map<string, Variable *> variableNames;
-    vector<Variable> variables;
-    shared_ptr <Node> root;
+    mutable std::shared_mutex mutex_;
+    std::unordered_set<Constant*> constants_;
+    vector<BinaryOperation*> binaryOperators_;
+    vector<Number*> numbers_;
+    std::unordered_map<std::size_t, Variable*> variablePositions_;
+    std::unordered_map<string, Variable*> variableNames_;
+    vector<Variable> variables_;
+    NodePtr root_;
 
-    void init(const vector<Variable> &vars) {
-        variableNames.clear();
-        variablePositions.clear();
-        traverse(root);
-        for (size_t i = 0; i < vars.size(); i++) {
-            auto variable = vars[i];
-            variablePositions[i] = variableNames[variable.toString()];
+    void init(const vector<Variable>& vars) {
+        variableNames_.clear();
+        variablePositions_.clear();
+        binaryOperators_.clear();
+        numbers_.clear();
+        constants_.clear();
+        
+        traverse(root_);
+        
+        for (std::size_t i = 0; i < vars.size(); i++) {
+            const auto& variable = vars[i];
+            const auto it = variableNames_.find(variable.toString());
+            if (it != variableNames_.end()) {
+                variablePositions_[i] = it->second;
+            }
         }
     }
 
-    void traverse(const shared_ptr <Node> &current) {
-        auto *binary = dynamic_cast<BinaryOperation *>(current.get());
-        if (binary == nullptr) {
-            auto *unary = dynamic_cast<UnaryOperation *>(current.get());
-            if (unary != nullptr) {
-                traverse(unary->getOperand());
-            }
-            auto *constant = dynamic_cast<Constant *>(current.get());
-            if (constant != nullptr) {
-                constants.insert(constant);
-            }
-            auto *variable = dynamic_cast<Variable *>(current.get());
-            if (variable != nullptr) {
-                variableNames[variable->toString()] = variable;
-            }
-            auto *number = dynamic_cast<Number *>(current.get());
-            if (number != nullptr && variable == nullptr) {
-                numbers.push_back(number);
-            }
-            auto *wrapper = dynamic_cast<Wrapper *>(current.get());
-            if (wrapper != nullptr) {
-                traverse(wrapper->getNode());
+    void traverse(const NodePtr& current) {
+        if (!current) return;
+        
+        if (auto* binary = dynamic_cast<BinaryOperation*>(current.get())) {
+            traverse(binary->getLeft());
+            traverse(binary->getRight());
+            binaryOperators_.push_back(binary);
+            return;
+        }
+
+        if (auto* unary = dynamic_cast<UnaryOperation*>(current.get())) {
+            traverse(unary->getOperand());
+            return;
+        }
+
+        if (auto* constant = dynamic_cast<Constant*>(current.get())) {
+            constants_.insert(constant);
+            return;
+        }
+
+        if (auto* variable = dynamic_cast<Variable*>(current.get())) {
+            variableNames_[variable->toString()] = variable;
+            return;
+        }
+
+        if (auto* number = dynamic_cast<Number*>(current.get())) {
+            // Only add if it's not a variable
+            if (!dynamic_cast<Variable*>(current.get())) {
+                numbers_.push_back(number);
             }
             return;
         }
 
-        traverse(binary->getLeft());
-        traverse(binary->getRight());
-        binaryOperators.push_back(binary);
+        if (auto* wrapper = dynamic_cast<Wrapper*>(current.get())) {
+            traverse(wrapper->getNode());
+            return;
+        }
     }
 
-    shared_ptr <Node> createCopy(shared_ptr <Node> original) {
-        auto *binary = dynamic_cast<BinaryOperation *>(original.get());
-        if (binary == nullptr) {
-            auto *unary = dynamic_cast<UnaryOperation *>(original.get());
-            if (unary != nullptr) {
-                auto *cosine = dynamic_cast<Cosine *>(original.get());
-                if (cosine != nullptr) {
-                    return make_shared<Cosine>(createCopy(cosine->getOperand()));
-                }
-                auto *cube = dynamic_cast<Cube *>(original.get());
-                if (cube != nullptr) {
-                    return make_shared<Cube>(createCopy(cube->getOperand()));
-                }
-                auto *cubeRoot = dynamic_cast<CubeRoot *>(original.get());
-                if (cubeRoot != nullptr) {
-                    return make_shared<CubeRoot>(createCopy(cubeRoot->getOperand()));
-                }
-                auto *exponentiation = dynamic_cast<Exponentiation *>(original.get());
-                if (exponentiation != nullptr) {
-                    return make_shared<Exponentiation>(createCopy(exponentiation->getOperand()));
-                }
-                auto *logarithmBinary = dynamic_cast<LogarithmBinary *>(original.get());
-                if (logarithmBinary != nullptr) {
-                    return make_shared<LogarithmBinary>(createCopy(logarithmBinary->getOperand()));
-                }
-                auto *logarithmCommon = dynamic_cast<LogarithmCommon *>(original.get());
-                if (logarithmCommon != nullptr) {
-                    return make_shared<LogarithmCommon>(createCopy(logarithmCommon->getOperand()));
-                }
-                auto *logarithmNatural = dynamic_cast<LogarithmNatural *>(original.get());
-                if (logarithmNatural != nullptr) {
-                    return make_shared<LogarithmNatural>(createCopy(logarithmNatural->getOperand()));
-                }
-                auto *sine = dynamic_cast<Sine *>(original.get());
-                if (sine != nullptr) {
-                    return make_shared<Sine>(createCopy(sine->getOperand()));
-                }
-                auto *square = dynamic_cast<Square *>(original.get());
-                if (square != nullptr) {
-                    return make_shared<Square>(createCopy(square->getOperand()));
-                }
-                auto *squareRoot = dynamic_cast<SquareRoot *>(original.get());
-                if (squareRoot != nullptr) {
-                    return make_shared<SquareRoot>(createCopy(squareRoot->getOperand()));
-                }
-                auto *squareRootNegative = dynamic_cast<SquareRootNegative *>(original.get());
-                if (squareRootNegative != nullptr) {
-                    return make_shared<SquareRootNegative>(createCopy(squareRootNegative->getOperand()));
-                }
-                auto *tangent = dynamic_cast<Tangent *>(original.get());
-                if (tangent != nullptr) {
-                    return make_shared<Tangent>(createCopy(tangent->getOperand()));
-                }
-            }
-            auto *constant = dynamic_cast<Constant *>(original.get());
-            if (constant != nullptr) {
-                auto copy = shared_ptr(original);
-                constants.insert(constant);
-                return copy;
-            }
-            auto *variable = dynamic_cast<Variable *>(original.get());
-            if (variable != nullptr) {
-                auto variableName = variable->toString();
-                auto variableCopy = make_shared<Variable>(variableName);
-                variableNames[variableName] = variableCopy.get();
-                return variableCopy;
-            }
-            auto *number = dynamic_cast<Number *>(original.get());
-            if (number != nullptr) {
-                auto copy = make_shared<Number>(number->calculate());
-                numbers.push_back(copy.get());
-                return copy;
-            }
-            auto *wrapper = dynamic_cast<Wrapper *>(original.get());
-            if (wrapper != nullptr) {
-                return make_shared<Wrapper>(createCopy(wrapper->getNode()));
-            }
+    [[nodiscard]] NodePtr createCopy(const NodePtr& original) {
+        if (!original) return nullptr;
+
+        // Handle binary operations
+        if (auto* binary = dynamic_cast<BinaryOperation*>(original.get())) {
+            return createBinaryCopy(binary);
         }
 
-        auto *addition = dynamic_cast<Addition *>(original.get());
-        if (addition != nullptr) {
-            auto copy = make_shared<Addition>(createCopy(addition->getLeft()), createCopy(addition->getRight()));
-            binaryOperators.push_back(copy.get());
+        // Handle unary operations
+        if (auto* unary = dynamic_cast<UnaryOperation*>(original.get())) {
+            return createUnaryCopy(unary);
+        }
+
+        // Handle constants
+        if (auto* constant = dynamic_cast<Constant*>(original.get())) {
+            constants_.insert(constant);
+            return original; // Constants are immutable, can share
+        }
+
+        // Handle variables
+        if (auto* variable = dynamic_cast<Variable*>(original.get())) {
+            const auto variableName = variable->toString();
+            auto variableCopy = make_shared<Variable>(variableName);
+            variableNames_[variableName] = variableCopy.get();
+            return variableCopy;
+        }
+
+        // Handle numbers
+        if (auto* number = dynamic_cast<Number*>(original.get())) {
+            auto copy = make_shared<Number>(number->calculate());
+            numbers_.push_back(copy.get());
             return copy;
         }
-        auto *division = dynamic_cast<Division *>(original.get());
-        if (division != nullptr) {
-            auto copy = make_shared<Division>(createCopy(division->getLeft()), createCopy(division->getRight()));
-            binaryOperators.push_back(copy.get());
-            return copy;
+
+        // Handle wrappers
+        if (auto* wrapper = dynamic_cast<Wrapper*>(original.get())) {
+            return make_shared<Wrapper>(createCopy(wrapper->getNode()));
         }
-        auto *mult = dynamic_cast<Multiplication *>(original.get());
-        if (mult != nullptr) {
-            auto copy = make_shared<Multiplication>(createCopy(mult->getLeft()), createCopy(mult->getRight()));
-            binaryOperators.push_back(copy.get());
-            return copy;
-        }
-        auto *power = dynamic_cast<Power *>(original.get());
-        if (power != nullptr) {
-            auto copy = make_shared<Power>(createCopy(power->getLeft()), createCopy(power->getRight()));
-            binaryOperators.push_back(copy.get());
-            return copy;
-        }
-        auto *sub = dynamic_cast<Subtraction *>(original.get());
-        if (sub != nullptr) {
-            auto copy = make_shared<Subtraction>(createCopy(sub->getLeft()), createCopy(sub->getRight()));
-            binaryOperators.push_back(copy.get());
-            return copy;
-        }
+
         return original;
+    }
+
+    [[nodiscard]] NodePtr createBinaryCopy(BinaryOperation* binary) {
+        NodePtr leftCopy = createCopy(binary->getLeft());
+        NodePtr rightCopy = createCopy(binary->getRight());
+        
+        NodePtr copy;
+        if (dynamic_cast<Addition*>(binary)) {
+            copy = make_shared<Addition>(leftCopy, rightCopy);
+        } else if (dynamic_cast<Subtraction*>(binary)) {
+            copy = make_shared<Subtraction>(leftCopy, rightCopy);
+        } else if (dynamic_cast<Multiplication*>(binary)) {
+            copy = make_shared<Multiplication>(leftCopy, rightCopy);
+        } else if (dynamic_cast<Division*>(binary)) {
+            copy = make_shared<Division>(leftCopy, rightCopy);
+        } else if (dynamic_cast<Power*>(binary)) {
+            copy = make_shared<Power>(leftCopy, rightCopy);
+        } else {
+            // Fallback for unknown binary operations
+            return binary->shared_from_this();
+        }
+        
+        binaryOperators_.push_back(static_cast<BinaryOperation*>(copy.get()));
+        return copy;
+    }
+
+    [[nodiscard]] NodePtr createUnaryCopy(UnaryOperation* unary) {
+        NodePtr operandCopy = createCopy(unary->getOperand());
+        
+        NodePtr copy;
+        if (dynamic_cast<Sine*>(unary)) {
+            copy = make_shared<Sine>(operandCopy);
+        } else if (dynamic_cast<Cosine*>(unary)) {
+            copy = make_shared<Cosine>(operandCopy);
+        } else if (dynamic_cast<Tangent*>(unary)) {
+            copy = make_shared<Tangent>(operandCopy);
+        } else if (dynamic_cast<Square*>(unary)) {
+            copy = make_shared<Square>(operandCopy);
+        } else if (dynamic_cast<Cube*>(unary)) {
+            copy = make_shared<Cube>(operandCopy);
+        } else if (dynamic_cast<SquareRoot*>(unary)) {
+            copy = make_shared<SquareRoot>(operandCopy);
+        } else if (dynamic_cast<SquareRootNegative*>(unary)) {
+            copy = make_shared<SquareRootNegative>(operandCopy);
+        } else if (dynamic_cast<CubeRoot*>(unary)) {
+            copy = make_shared<CubeRoot>(operandCopy);
+        } else if (dynamic_cast<LogarithmNatural*>(unary)) {
+            copy = make_shared<LogarithmNatural>(operandCopy);
+        } else if (dynamic_cast<LogarithmCommon*>(unary)) {
+            copy = make_shared<LogarithmCommon>(operandCopy);
+        } else if (dynamic_cast<LogarithmBinary*>(unary)) {
+            copy = make_shared<LogarithmBinary>(operandCopy);
+        } else if (dynamic_cast<Exponentiation*>(unary)) {
+            copy = make_shared<Exponentiation>(operandCopy);
+        } else {
+            // Fallback for unknown unary operations
+            return unary->shared_from_this();
+        }
+        
+        return copy;
     }
 };
 

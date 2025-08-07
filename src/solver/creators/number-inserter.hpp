@@ -10,13 +10,13 @@ public:
     template<typename C, typename N>
     explicit NumberInserter(C &coin, N &randomNumber) : Creator(coin, randomNumber) {}
 
-    Formula change(Formula &formula) override {
+    [[nodiscard]] Formula change(const Formula& formula) const override {
         auto node = operationProducer->createBinaryOperation(formula.getRoot(), createNumberOrConstant());
         Formula result(node, formula.getVariables());
         return result;
     }
 
-    ChangerType getType() override {
+    [[nodiscard]] ChangerType getType() const noexcept override {
         return ChangerType::NUMBER_INSERTER;
     }
 

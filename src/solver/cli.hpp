@@ -2,34 +2,37 @@
 #define GENERIC_SOLVER_CLI_HPP
 
 #include "solver.hpp"
+#include <iostream>
+#include <thread>
+#include <chrono>
 
-void interactWithSolver(Solver &solver) {
+void interactWithSolver(Solver& solver) {
     while (solver.getState() != SolverState::DONE) {
-        for (std::string input; std::cout << "Solver > " && std::getline(std::cin, input);) {
+        for (string input; std::cout << "Solver > " && std::getline(std::cin, input);) {
             if (!input.empty()) {
-                if ("exit" == input) {
-                    exit(solver.getState() == SolverState::DONE ? 0 : 1);
+                if (input == "exit") {
+                    std::exit(solver.getState() == SolverState::DONE ? 0 : 1);
                 }
-                if ("help" == input) {
-                    cout << "You can use the following commands:\n"
+                if (input == "help") {
+                    std::cout << "You can use the following commands:\n"
                             "\texit\tTerminates the solver\n"
                             "\thelp\tPrints this output\n"
                             "\tshrink\tCleans the solutions cache\n"
                             "\tprint\tPrints the best solutions\n";
                     continue;
                 }
-                if ("shrink" == input) {
+                if (input == "shrink") {
                     solver.shrink();
                     continue;
                 }
-                if ("print" == input) {
+                if (input == "print") {
                     solver.print();
                     continue;
                 }
-                cout << input << " is not a supported command. Type help for a list of commands.\n";
+                std::cout << input << " is not a supported command. Type help for a list of commands.\n";
             }
         }
-        this_thread::sleep_for(std::chrono::milliseconds(333));
+        std::this_thread::sleep_for(std::chrono::milliseconds(333));
     }
 }
 
