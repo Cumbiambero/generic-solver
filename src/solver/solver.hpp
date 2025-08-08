@@ -4,6 +4,8 @@
 #include "solver-base.hpp"
 #include "creators/operation-producer.hpp"
 #include "changers/flipper.hpp"
+#include "enhanced-fitness.hpp"
+#include "ultra-precision-fitness.hpp"
 #include <cmath>
 #include <thread>
 #include <utility>
@@ -123,18 +125,23 @@ private:
 
 class Solver {
 public:
-    Solver(vector<Variable> variables, vector<vector<number>> input, vector<vector<number>> results)
+    Solver(vector<Variable> variables, vector<vector<number>> input, vector<vector<number>> results, 
+           bool useEnhancedFitness = true)
             : variables_(std::move(variables)), 
               input_(std::move(input)), 
               results_(std::move(results)),
               cores_(std::max(1u, std::thread::hardware_concurrency() - 1)),
-              currentState_(SolverState::READY) {}
+              currentState_(SolverState::READY),
+              useEnhancedFitness_(useEnhancedFitness),
+              enhancedEvaluator_(std::make_unique<EnhancedEvaluator>()) {}
 
     void start() {
         if (currentState_ == SolverState::READY) {
             auto node = operationProducer_.produce(variables_);
             Formula formula(node, variables_);
-            const auto rate = Evaluator::rate(formula, input_, results_);
+            const auto rate = useEnhancedFitness_ ? 
+                enhancedEvaluator_->rate(formula, input_, results_) :
+                Evaluator::rate(formula, input_, results_);
             
             std::unique_lock lock(solutionsMutex_);
             solutions_.emplace(std::move(formula), ChangerType::FLIPPER, rate);
@@ -239,13 +246,22 @@ private:
 
     std::set<Solution> solutions_;
     std::set<Solution> hallOfFame_;
+    
+    bool useEnhancedFitness_;
+    std::unique_ptr<EnhancedEvaluator> enhancedEvaluator_;
 
     void work() {
         std::size_t stagnationCounter = 0;
+        std::size_t aggressiveStagnationCounter = 0;
         number lastBestRate = 0.0L;
         
         while (currentState_.load() == SolverState::RUNNING) {
             auto changer = pickChanger();
+            
+            // Adaptive mutation: prefer more creative changers when stagnated
+            if (aggressiveStagnationCounter > AGGRESSIVE_STAGNATION_THRESHOLD) {
+                changer = pickCreativeChanger();
+            }
             
             std::shared_lock readLock(solutionsMutex_);
             if (solutions_.empty()) {
@@ -267,28 +283,36 @@ private:
             const auto changerType = changer ? changer->getType() : ChangerType::MERGER;
             storeSolution(changerType, newFormula);
 
-            // Stagnation detection and handling
+            // Enhanced stagnation detection and handling
             std::shared_lock bestRateReadLock(solutionsMutex_);
             const number currentBestRate = solutions_.empty() ? 0.0L : solutions_.rbegin()->getRate();
             bestRateReadLock.unlock();
             
             if (std::abs(currentBestRate - lastBestRate) < 1e-8L) {
                 ++stagnationCounter;
+                ++aggressiveStagnationCounter;
             } else {
                 stagnationCounter = 0;
+                aggressiveStagnationCounter = 0;
                 lastBestRate = currentBestRate;
             }
             
-            // Inject randomness when stagnated
+            // Progressive intervention when stagnated
             if (stagnationCounter > STAGNATION_THRESHOLD) {
                 injectRandomness();
                 stagnationCounter = 0;
+            }
+            
+            // More aggressive intervention for prolonged stagnation
+            if (aggressiveStagnationCounter > AGGRESSIVE_STAGNATION_THRESHOLD * 2) {
+                injectCreativeRandomness();
+                aggressiveStagnationCounter = 0;
             }
         }
     }
 
     void storeSolution(ChangerType type, const Formula& formula) {
-        const auto rate = Evaluator::rate(formula, input_, results_);
+        const auto rate = evaluateFormula(formula);
         Solution solution(formula, type, rate);
         
         if (rate > ALMOST_PERFECT) {
@@ -319,10 +343,94 @@ private:
         for (std::size_t i = 0; i < RANDOM_INJECTION_COUNT; ++i) {
             auto node = operationProducer_.produce(variables_);
             Formula randomFormula(node, variables_);
-            const auto rate = Evaluator::rate(randomFormula, input_, results_);
+            const auto rate = evaluateFormula(randomFormula);
             solutions_.emplace(std::move(randomFormula), ChangerType::FLIPPER, rate);
         }
         lock.unlock();
+    }
+
+    void injectCreativeRandomness() {
+        std::unique_lock lock(solutionsMutex_);
+        if (solutions_.empty()) {
+            lock.unlock();
+            return;
+        }
+        
+        // Keep top 3 solutions and create variations using creative operators
+        std::vector<Solution> topSolutions;
+        auto it = solutions_.rbegin();
+        for (int i = 0; i < 3 && it != solutions_.rend(); ++i, ++it) {
+            topSolutions.push_back(*it);
+        }
+        
+        solutions_.clear();
+        
+        // Re-insert top solutions
+        for (const auto& sol : topSolutions) {
+            solutions_.insert(sol);
+        }
+        
+        // Create variations using creative operators
+        auto creativeChangers = {
+            changerPicker_.pickChanger(ChangerType::SIMPLIFIER),
+            changerPicker_.pickChanger(ChangerType::FUNCTION_TRANSFORMER),
+            changerPicker_.pickChanger(ChangerType::VARIABLE_SWAPPER),
+            changerPicker_.pickChanger(ChangerType::STRUCTURE_MUTATOR)
+        };
+        
+        for (const auto& baseSolution : topSolutions) {
+            for (auto changer : creativeChangers) {
+                if (changer) {
+                    try {
+                        auto newFormula = changer->change(baseSolution.getFormula());
+                        const auto rate = evaluateFormula(newFormula);
+                        solutions_.emplace(std::move(newFormula), changer->getType(), rate);
+                    } catch (...) {
+                        // Skip if changer fails
+                    }
+                }
+            }
+        }
+        
+        lock.unlock();
+    }
+
+    [[nodiscard]] number evaluateFormula(const Formula& formula) const {
+        if (useEnhancedFitness_) {
+            // Use ultra-precision for formulas that might be close to perfect
+            number basicFitness = enhancedEvaluator_->rate(formula, input_, results_);
+            
+            // Switch to ultra-precision for high-fitness formulas
+            if (basicFitness > 0.6L) {
+                return UltraPrecisionEvaluator::rate(formula, input_, results_);
+            }
+            return basicFitness;
+        } else {
+            return Evaluator::rate(formula, input_, results_);
+        }
+    }
+
+    [[nodiscard]] Changer* pickCreativeChanger() {
+        // Bias towards creative/structural changers when stagnated
+        auto creativeTypes = {
+            ChangerType::SIMPLIFIER,
+            ChangerType::FUNCTION_TRANSFORMER,
+            ChangerType::VARIABLE_SWAPPER,
+            ChangerType::STRUCTURE_MUTATOR,
+            ChangerType::PURGER,
+            ChangerType::ADAPTIVE_MUTATOR,
+            ChangerType::FILTER_RELATIONSHIP_MUTATOR,
+            ChangerType::EXPONENTIAL_PATTERN_ENHANCER,
+            ChangerType::POWER_RELATIONSHIP_PROMOTER,
+            ChangerType::PRECISION_TUNER,          // High-precision fine-tuning
+            ChangerType::RANGE_OPTIMIZER,          // Range-aware optimization
+            ChangerType::NONLINEARITY_INJECTOR     // Complex transformations
+        };
+        
+        auto randomIndex = operationProducer_.getRandomNumber()->calculate(0, 11);
+        auto selectedType = *std::next(creativeTypes.begin(), randomIndex);
+        
+        return changerPicker_.pickChanger(selectedType);
     }
 
     [[nodiscard]] Changer* pickChanger() {

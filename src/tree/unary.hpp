@@ -17,14 +17,29 @@ enum class UnaryOperationType {
     LOG,
     LOG_10,
     LOG_2,
-    EXP
+    EXP,
+    TANH,
+    SINH,
+    COSH,
+    ASIN,
+    ACOS,
+    ATAN,
+    ABS,
+    FLOOR,
+    CEIL,
+    SIGMOID,
+    SOFT_SAT
 };
 
-static constexpr std::array<UnaryOperationType, 12> UNARY_OPERATIONS{
+static constexpr std::array<UnaryOperationType, 23> UNARY_OPERATIONS{
     UnaryOperationType::SIN, UnaryOperationType::COS, UnaryOperationType::TAN,
     UnaryOperationType::SQUARE, UnaryOperationType::CUBE, UnaryOperationType::SQUARE_ROOT,
     UnaryOperationType::SQUARE_ROOT_NEG, UnaryOperationType::CUBE_ROOT, UnaryOperationType::LOG,
-    UnaryOperationType::LOG_10, UnaryOperationType::LOG_2, UnaryOperationType::EXP
+    UnaryOperationType::LOG_10, UnaryOperationType::LOG_2, UnaryOperationType::EXP,
+    UnaryOperationType::TANH, UnaryOperationType::SINH, UnaryOperationType::COSH,
+    UnaryOperationType::ASIN, UnaryOperationType::ACOS, UnaryOperationType::ATAN,
+    UnaryOperationType::ABS, UnaryOperationType::FLOOR, UnaryOperationType::CEIL,
+    UnaryOperationType::SIGMOID, UnaryOperationType::SOFT_SAT
 };
 
 class UnaryOperation : public Node {
@@ -228,6 +243,162 @@ public:
 
 protected:
     string getCppFunction() const override { return "std::exp"; }
+};
+
+// New Enhanced Mathematical Functions
+class HyperbolicTangent : public UnaryOperation {
+public:
+    template<typename O>
+    explicit HyperbolicTangent(const O& operand) : UnaryOperation("tanh", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::tanh(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::tanh"; }
+};
+
+class HyperbolicSine : public UnaryOperation {
+public:
+    template<typename O>
+    explicit HyperbolicSine(const O& operand) : UnaryOperation("sinh", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::sinh(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::sinh"; }
+};
+
+class HyperbolicCosine : public UnaryOperation {
+public:
+    template<typename O>
+    explicit HyperbolicCosine(const O& operand) : UnaryOperation("cosh", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::cosh(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::cosh"; }
+};
+
+class ArcSine : public UnaryOperation {
+public:
+    template<typename O>
+    explicit ArcSine(const O& operand) : UnaryOperation("asin", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        const auto val = operand_->calculate();
+        if (val < -1.0L || val > 1.0L) return 0.0L; // Handle domain error
+        return std::asin(val);
+    }
+
+protected:
+    string getCppFunction() const override { return "std::asin"; }
+};
+
+class ArcCosine : public UnaryOperation {
+public:
+    template<typename O>
+    explicit ArcCosine(const O& operand) : UnaryOperation("acos", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        const auto val = operand_->calculate();
+        if (val < -1.0L || val > 1.0L) return 0.0L; // Handle domain error
+        return std::acos(val);
+    }
+
+protected:
+    string getCppFunction() const override { return "std::acos"; }
+};
+
+class ArcTangent : public UnaryOperation {
+public:
+    template<typename O>
+    explicit ArcTangent(const O& operand) : UnaryOperation("atan", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::atan(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::atan"; }
+};
+
+class AbsoluteValue : public UnaryOperation {
+public:
+    template<typename O>
+    explicit AbsoluteValue(const O& operand) : UnaryOperation("abs", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::abs(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::abs"; }
+};
+
+class Floor : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Floor(const O& operand) : UnaryOperation("floor", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::floor(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::floor"; }
+};
+
+class Ceiling : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Ceiling(const O& operand) : UnaryOperation("ceil", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::ceil(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::ceil"; }
+};
+
+class Sigmoid : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Sigmoid(const O& operand) : UnaryOperation("sigmoid", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        const auto x = operand_->calculate();
+        if (x > 500.0L) return 1.0L; // Prevent overflow
+        if (x < -500.0L) return 0.0L;
+        return 1.0L / (1.0L + std::exp(-x));
+    }
+
+protected:
+    string getCppFunction() const override { 
+        return "([](long double x) { return x > 500.0L ? 1.0L : (x < -500.0L ? 0.0L : 1.0L / (1.0L + std::exp(-x))); })";
+    }
+};
+
+class SoftSaturation : public UnaryOperation {
+public:
+    template<typename O>
+    explicit SoftSaturation(const O& operand) : UnaryOperation("sat", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        const auto x = operand_->calculate();
+        return x / (1.0L + std::abs(x));
+    }
+
+protected:
+    string getCppFunction() const override { 
+        return "([](long double x) { return x / (1.0L + std::abs(x)); })";
+    }
 };
 
 #endif

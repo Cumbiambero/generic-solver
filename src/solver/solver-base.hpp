@@ -54,6 +54,17 @@ private:
         changers_[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
         changers_[ChangerType::PURGER] = make_unique<Purger>();
         changers_[ChangerType::MERGER] = make_unique<OperationReplacer>(); // this is intentional
+        changers_[ChangerType::SIMPLIFIER] = make_unique<Simplifier>();
+        changers_[ChangerType::FUNCTION_TRANSFORMER] = make_unique<FunctionTransformer>();
+        changers_[ChangerType::VARIABLE_SWAPPER] = make_unique<VariableSwapper>();
+        changers_[ChangerType::STRUCTURE_MUTATOR] = make_unique<StructureMutator>();
+        changers_[ChangerType::ADAPTIVE_MUTATOR] = make_unique<AdaptiveMutator>();
+        changers_[ChangerType::FILTER_RELATIONSHIP_MUTATOR] = make_unique<FilterRelationshipMutator>();
+        changers_[ChangerType::EXPONENTIAL_PATTERN_ENHANCER] = make_unique<ExponentialPatternEnhancer>();
+        changers_[ChangerType::POWER_RELATIONSHIP_PROMOTER] = make_unique<PowerRelationshipPromoter>();
+        changers_[ChangerType::PRECISION_TUNER] = make_unique<PrecisionTuner>();
+        changers_[ChangerType::RANGE_OPTIMIZER] = make_unique<RangeOptimizer>();
+        changers_[ChangerType::NONLINEARITY_INJECTOR] = make_unique<NonlinearityInjector>();
     }
 };
 

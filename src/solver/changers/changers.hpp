@@ -9,5 +9,12 @@
 #include "reducer-by-fragment.hpp"
 #include "reducer-by-halving.hpp"
 #include "reducer-by-one.hpp"
+#include "simplifier.hpp"
+#include "function-transformer.hpp"
+#include "variable-swapper.hpp"
+#include "structure-mutator.hpp"
+#include "adaptive-mutator.hpp"
+#include "audio-operators.hpp"
+#include "precision-tuner.hpp"
 
 #endif

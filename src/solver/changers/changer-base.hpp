@@ -15,7 +15,18 @@ enum class ChangerType {
     PURGER,
     REDUCER_BY_FRAGMENT,
     REDUCER_BY_HALVING,
-    REDUCER_BY_ONE
+    REDUCER_BY_ONE,
+    SIMPLIFIER,
+    FUNCTION_TRANSFORMER,
+    VARIABLE_SWAPPER,
+    STRUCTURE_MUTATOR,
+    ADAPTIVE_MUTATOR,
+    FILTER_RELATIONSHIP_MUTATOR,
+    EXPONENTIAL_PATTERN_ENHANCER,
+    POWER_RELATIONSHIP_PROMOTER,
+    PRECISION_TUNER,
+    RANGE_OPTIMIZER,
+    NONLINEARITY_INJECTOR
 };
 
 class Changer {
@@ -27,11 +38,9 @@ public:
 
     virtual ~Changer() = default;
 
-    // Delete copy constructor and assignment to avoid issues with inheritance
     Changer(const Changer&) = delete;
     Changer& operator=(const Changer&) = delete;
     
-    // Allow move semantics
     Changer(Changer&&) = default;
     Changer& operator=(Changer&&) = default;
 

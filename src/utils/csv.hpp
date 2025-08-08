@@ -13,10 +13,10 @@
     }
     
     vector<vector<number>> result;
-    result.reserve(1000); // Reserve space for better performance
+    result.reserve(1000);
 
     for (string line; std::getline(input, line);) {
-        if (line.empty()) continue; // Skip empty lines
+        if (line.empty()) continue;
         
         std::istringstream ss(std::move(line));
         vector<number> row;

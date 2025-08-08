@@ -11,8 +11,9 @@ static constexpr number ALMOST_PERFECT = 0.9999999999L;
 static constexpr number EPSILON_FOR_RATE = 1.0L - ALMOST_PERFECT;
 static constexpr std::size_t SOLUTIONS_SIZE = 1000;
 static constexpr std::size_t HALL_OF_FAME_SIZE = 3;
-static constexpr std::size_t STAGNATION_THRESHOLD = 500;
-static constexpr std::size_t RANDOM_INJECTION_COUNT = 1000;
+static constexpr std::size_t STAGNATION_THRESHOLD = 200;
+static constexpr std::size_t RANDOM_INJECTION_COUNT = 500;
+static constexpr std::size_t AGGRESSIVE_STAGNATION_THRESHOLD = 100;
 
 // Display formatting
 static constexpr std::size_t FORMULA_WIDTH = 70;

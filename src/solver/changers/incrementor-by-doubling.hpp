@@ -11,7 +11,7 @@ public:
     explicit IncrementorByDoubling(C& coin) : Changer(coin) {}
 
     [[nodiscard]] Formula change(const Formula& formula) const override {
-        Formula result = formula; // Make a copy
+        Formula result = formula;
         for (auto* val : result.getNumbers()) {
             if (coin_->toss()) {
                 val->setValue(val->calculate() * 2.0L);

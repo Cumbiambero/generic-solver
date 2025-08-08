@@ -13,7 +13,7 @@ public:
     explicit ReducerByFragment(C& coin) : Changer(coin) {}
 
     [[nodiscard]] Formula change(const Formula& formula) const override {
-        Formula result = formula; // Make a copy
+        Formula result = formula;
         for (auto* val : result.getNumbers()) {
             const number current = val->calculate();
             if (coin_->toss()) {

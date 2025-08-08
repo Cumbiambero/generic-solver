@@ -46,6 +46,28 @@ public:
                 return std::make_shared<LogarithmBinary>(operand);
             case UnaryOperationType::EXP:
                 return std::make_shared<Exponentiation>(operand);
+            case UnaryOperationType::TANH:
+                return std::make_shared<HyperbolicTangent>(operand);
+            case UnaryOperationType::SINH:
+                return std::make_shared<HyperbolicSine>(operand);
+            case UnaryOperationType::COSH:
+                return std::make_shared<HyperbolicCosine>(operand);
+            case UnaryOperationType::ASIN:
+                return std::make_shared<ArcSine>(operand);
+            case UnaryOperationType::ACOS:
+                return std::make_shared<ArcCosine>(operand);
+            case UnaryOperationType::ATAN:
+                return std::make_shared<ArcTangent>(operand);
+            case UnaryOperationType::ABS:
+                return std::make_shared<AbsoluteValue>(operand);
+            case UnaryOperationType::FLOOR:
+                return std::make_shared<Floor>(operand);
+            case UnaryOperationType::CEIL:
+                return std::make_shared<Ceiling>(operand);
+            case UnaryOperationType::SIGMOID:
+                return std::make_shared<Sigmoid>(operand);
+            case UnaryOperationType::SOFT_SAT:
+                return std::make_shared<SoftSaturation>(operand);
             default:
                 return nullptr;
         }

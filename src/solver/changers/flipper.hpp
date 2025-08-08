@@ -11,7 +11,7 @@ public:
     explicit Flipper(C& coin) : Changer(coin) {}
 
     [[nodiscard]] Formula change(const Formula& formula) const override {
-        Formula result = formula; // Make a copy
+        Formula result = formula;
         for (auto* binary : result.getBinaryOperators()) {
             if (coin_->toss()) {
                 auto temp = binary->getRight();

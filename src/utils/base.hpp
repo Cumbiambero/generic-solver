@@ -11,7 +11,6 @@
 #include <type_traits>
 #include <concepts>
 
-// Modern C++23 type aliases
 using number = long double;
 using std::vector;
 using std::string;
@@ -20,7 +19,6 @@ using std::unique_ptr;
 using std::make_shared;
 using std::make_unique;
 
-// Concepts for type safety
 template<typename T>
 concept Numeric = std::is_arithmetic_v<T>;
 

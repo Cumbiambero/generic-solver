@@ -111,11 +111,9 @@ public:
     Variable(string symbol, number value) noexcept
             : Number(value), symbol_(std::move(symbol)) {}
 
-    // Explicit copy constructor - Variable needs to be copyable for vector storage
     Variable(const Variable& other) 
             : Number(other.value_), symbol_(other.symbol_) {}
 
-    // Explicit copy assignment
     Variable& operator=(const Variable& other) {
         if (this != &other) {
             value_ = other.value_;
@@ -124,7 +122,6 @@ public:
         return *this;
     }
 
-    // Default move semantics
     Variable(Variable&&) = default;
     Variable& operator=(Variable&&) = default;
 
@@ -138,7 +135,7 @@ public:
     }
 
 private:
-    string symbol_;  // Made non-const to allow move semantics
+    string symbol_;
 };
 
 class Constant : public Number {
@@ -151,11 +148,11 @@ public:
     [[nodiscard]] string toCppCode() const override {
         if (symbol_ == "π") return "M_PI";
         if (symbol_ == "e") return "M_E";
-        return Number::toCppCode(); // Fall back to numeric value
+        return Number::toCppCode();
     }
 
     void setValue([[maybe_unused]] number val) noexcept override { 
-        // Constants cannot be changed
+        // Does not apply for constants
     }
 
     [[nodiscard]] NodePtr simplify() const override {
