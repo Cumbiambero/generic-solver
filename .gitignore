@@ -1,4 +1,5 @@
 /build/
+/preprocessing/
 /cmake-build-debug/
 /.vscode/
 /.idea/
