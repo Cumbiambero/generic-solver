@@ -16,5 +16,6 @@
 #include "adaptive-mutator.hpp"
 #include "audio-operators.hpp"
 #include "precision-tuner.hpp"
+#include "targeted-tuner.hpp"
 
 #endif

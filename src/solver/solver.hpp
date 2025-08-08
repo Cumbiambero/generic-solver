@@ -396,38 +396,26 @@ private:
     }
 
     [[nodiscard]] number evaluateFormula(const Formula& formula) const {
-        if (useEnhancedFitness_) {
-            // Use ultra-precision for formulas that might be close to perfect
-            number basicFitness = enhancedEvaluator_->rate(formula, input_, results_);
-            
-            // Switch to ultra-precision for high-fitness formulas
-            if (basicFitness > 0.6L) {
-                return UltraPrecisionEvaluator::rate(formula, input_, results_);
-            }
-            return basicFitness;
-        } else {
-            return Evaluator::rate(formula, input_, results_);
-        }
+        return useEnhancedFitness_ ? 
+            enhancedEvaluator_->rate(formula, input_, results_) :
+            Evaluator::rate(formula, input_, results_);
     }
 
     [[nodiscard]] Changer* pickCreativeChanger() {
-        // Bias towards creative/structural changers when stagnated
         auto creativeTypes = {
+            ChangerType::TARGETED_TUNER,           // NEW: Prioritize targeted optimization
+            ChangerType::PATTERN_OPTIMIZER,       // NEW: Pattern-specific improvements
             ChangerType::SIMPLIFIER,
             ChangerType::FUNCTION_TRANSFORMER,
             ChangerType::VARIABLE_SWAPPER,
             ChangerType::STRUCTURE_MUTATOR,
-            ChangerType::PURGER,
             ChangerType::ADAPTIVE_MUTATOR,
             ChangerType::FILTER_RELATIONSHIP_MUTATOR,
             ChangerType::EXPONENTIAL_PATTERN_ENHANCER,
-            ChangerType::POWER_RELATIONSHIP_PROMOTER,
-            ChangerType::PRECISION_TUNER,          // High-precision fine-tuning
-            ChangerType::RANGE_OPTIMIZER,          // Range-aware optimization
-            ChangerType::NONLINEARITY_INJECTOR     // Complex transformations
+            ChangerType::POWER_RELATIONSHIP_PROMOTER
         };
         
-        auto randomIndex = operationProducer_.getRandomNumber()->calculate(0, 11);
+        auto randomIndex = operationProducer_.getRandomNumber()->calculate(0, 9);
         auto selectedType = *std::next(creativeTypes.begin(), randomIndex);
         
         return changerPicker_.pickChanger(selectedType);
@@ -447,7 +435,7 @@ private:
         
         if (solutions_.size() <= 1) {
             lock.unlock();
-            return nullptr; // Use merger
+            return nullptr;
         }
         
         auto it = solutions_.begin();

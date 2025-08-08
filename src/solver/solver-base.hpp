@@ -65,6 +65,8 @@ private:
         changers_[ChangerType::PRECISION_TUNER] = make_unique<PrecisionTuner>();
         changers_[ChangerType::RANGE_OPTIMIZER] = make_unique<RangeOptimizer>();
         changers_[ChangerType::NONLINEARITY_INJECTOR] = make_unique<NonlinearityInjector>();
+        changers_[ChangerType::TARGETED_TUNER] = make_unique<TargetedTuner>();
+        changers_[ChangerType::PATTERN_OPTIMIZER] = make_unique<PatternOptimizer>();
     }
 };
 
