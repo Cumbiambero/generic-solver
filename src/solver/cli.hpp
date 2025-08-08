@@ -18,7 +18,8 @@ void interactWithSolver(Solver& solver) {
                             "\texit\tTerminates the solver\n"
                             "\thelp\tPrints this output\n"
                             "\tshrink\tCleans the solutions cache\n"
-                            "\tprint\tPrints the best solutions\n";
+                            "\tprint\tPrints the best solutions\n"
+                            "\tstop\tRequests early stop and prints results\n";
                     continue;
                 }
                 if (input == "shrink") {
@@ -27,6 +28,10 @@ void interactWithSolver(Solver& solver) {
                 }
                 if (input == "print") {
                     solver.print();
+                    continue;
+                }
+                if (input == "stop") {
+                    solver.requestStop();
                     continue;
                 }
                 std::cout << input << " is not a supported command. Type help for a list of commands.\n";

@@ -74,6 +74,24 @@ public:
         return evaluate(std::array<number, 4>{param1, param2, param3, param4});
     }
 
+    [[nodiscard]] number evaluate(const vector<number>& params) const {
+        if (variableNames_.size() != params.size()) {
+            throw std::invalid_argument("Parameter count mismatch");
+        }
+
+        std::shared_lock lock(mutex_);
+        if (!variablePositions_.empty() && variablePositions_.size() == params.size()) {
+            for (std::size_t i = 0; i < params.size(); i++) {
+                auto it = variablePositions_.find(i);
+                if (it != variablePositions_.end() && it->second) {
+                    it->second->setValue(params[i]);
+                }
+            }
+        }
+        const number result = root_->calculate();
+        return std::isfinite(result) ? result : std::numeric_limits<number>::lowest();
+    }
+
     [[nodiscard]] string toString() const { 
         root_->simplify();
         return root_->toString();

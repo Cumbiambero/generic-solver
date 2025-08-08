@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <execution>
 #include <set>
+#include <chrono>
+#include <iomanip>
 
 class Solution {
 public:
@@ -32,12 +34,18 @@ public:
     [[nodiscard]] static bool compare(const Solution& a, const Solution& b) noexcept {
         if (a.rate_ < b.rate_) {
             return true;
-        } 
-        if (std::abs(a.rate_ - b.rate_) < EPSILON_FOR_RATE) {
+        }
+        const auto diff = std::abs(a.rate_ - b.rate_);
+        if (diff < EPSILON_FOR_RATE) {
             const auto aString = a.getFormula().toString();
             const auto bString = b.getFormula().toString();
-            if (aString != bString) {
+            if (aString.size() != bString.size()) {
+                // Prefer shorter formula when rates tie
                 return aString.size() > bString.size();
+            }
+            // As a final tiebreaker, use lexicographical order to avoid set collisions
+            if (aString != bString) {
+                return aString > bString;
             }
         }
         return false;
@@ -72,18 +80,20 @@ public:
         for (std::size_t i = 0; i < expected.size(); ++i) {
             const auto& inputRow = input[i];
             number currentResult;
-            
             try {
-                switch (inputRow.size()) {
-                    case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
-                    case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
-                    case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
-                    case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
-                    default: 
-                        throw std::runtime_error("Too many variables for formula.evaluate");
+                if (inputRow.size() <= 4) {
+                    switch (inputRow.size()) {
+                        case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
+                        case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
+                        case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                        case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                        default: currentResult = 0.0L; break;
+                    }
+                } else {
+                    currentResult = mutableFormula.evaluate(inputRow);
                 }
             } catch (...) {
-                return 0.0L; // Any evaluation error results in zero fitness
+                return 0.0L;
             }
 
             // Penalize any invalid result
@@ -126,14 +136,27 @@ private:
 class Solver {
 public:
     Solver(vector<Variable> variables, vector<vector<number>> input, vector<vector<number>> results, 
-           bool useEnhancedFitness = true)
+           bool useEnhancedFitness = true,
+           bool useUltraPrecisionFitness = false,
+           number targetFitness = ALMOST_PERFECT,
+           std::size_t threads = 0,
+           std::chrono::seconds timeLimit = std::chrono::seconds{0})
             : variables_(std::move(variables)), 
               input_(std::move(input)), 
               results_(std::move(results)),
-              cores_(std::max(1u, std::thread::hardware_concurrency() - 1)),
+              cores_(threads > 0 ? threads : std::max(1u, std::thread::hardware_concurrency() - 1)),
               currentState_(SolverState::READY),
               useEnhancedFitness_(useEnhancedFitness),
-              enhancedEvaluator_(std::make_unique<EnhancedEvaluator>()) {}
+              useUltraPrecisionFitness_(useUltraPrecisionFitness),
+              targetFitness_(targetFitness),
+              enhancedEvaluator_(std::make_unique<EnhancedEvaluator>()) {
+        if (timeLimit.count() > 0) {
+            hasDeadline_ = true;
+            deadline_ = std::chrono::steady_clock::now() + timeLimit;
+        } else {
+            hasDeadline_ = false;
+        }
+    }
 
     void start() {
         if (currentState_ == SolverState::READY) {
@@ -163,7 +186,6 @@ public:
         
         if (currentState_ == SolverState::DONE) {
             print();
-            std::exit(0);
         }
     }
 
@@ -172,6 +194,10 @@ public:
         printSolutions(hallOfFame_);
         std::cout << "\nPrevious intentions:\n";
         printSolutions(solutions_);
+    }
+    
+    void requestStop() noexcept {
+        currentState_ = SolverState::DONE;
     }
 
     static void printSolutions(const std::set<Solution>& target, 
@@ -248,7 +274,13 @@ private:
     std::set<Solution> hallOfFame_;
     
     bool useEnhancedFitness_;
+    bool useUltraPrecisionFitness_;
+    number targetFitness_;
     std::unique_ptr<EnhancedEvaluator> enhancedEvaluator_;
+    
+    // Early stopping controls
+    std::atomic<bool> hasDeadline_{false};
+    std::chrono::steady_clock::time_point deadline_{};
 
     void work() {
         std::size_t stagnationCounter = 0;
@@ -256,6 +288,13 @@ private:
         number lastBestRate = 0.0L;
         
         while (currentState_.load() == SolverState::RUNNING) {
+            // Check deadline
+            if (hasDeadline_.load()) {
+                if (std::chrono::steady_clock::now() >= deadline_) {
+                    currentState_ = SolverState::DONE;
+                    break;
+                }
+            }
             auto changer = pickChanger();
             
             // Adaptive mutation: prefer more creative changers when stagnated
@@ -297,6 +336,12 @@ private:
                 lastBestRate = currentBestRate;
             }
             
+            // Stop if target fitness achieved
+            if (currentBestRate >= targetFitness_) {
+                currentState_ = SolverState::DONE;
+                break;
+            }
+            
             // Progressive intervention when stagnated
             if (stagnationCounter > STAGNATION_THRESHOLD) {
                 injectRandomness();
@@ -314,6 +359,13 @@ private:
     void storeSolution(ChangerType type, const Formula& formula) {
         const auto rate = evaluateFormula(formula);
         Solution solution(formula, type, rate);
+        
+        if (rate >= targetFitness_) {
+            std::unique_lock hallLock(hallOfFameMutex_);
+            hallOfFame_.insert(solution);
+            currentState_ = SolverState::DONE;
+            hallLock.unlock();
+        }
         
         if (rate > ALMOST_PERFECT) {
             std::unique_lock hallLock(hallOfFameMutex_);
@@ -396,6 +448,9 @@ private:
     }
 
     [[nodiscard]] number evaluateFormula(const Formula& formula) const {
+        if (useUltraPrecisionFitness_) {
+            return UltraPrecisionEvaluator::rate(formula, input_, results_);
+        }
         return useEnhancedFitness_ ? 
             enhancedEvaluator_->rate(formula, input_, results_) :
             Evaluator::rate(formula, input_, results_);

@@ -1,8 +1,12 @@
 #ifndef GENERIC_SOLVER_ULTRA_PRECISION_FITNESS_HPP
 #define GENERIC_SOLVER_ULTRA_PRECISION_FITNESS_HPP
 
-#include "enhanced-fitness.hpp"
+#include "formula.hpp"
+#include "../utils/base.hpp"
+#include "../utils/config.hpp"
 #include <cmath>
+#include <vector>
+#include <limits>
 
 class UltraPrecisionEvaluator {
 public:
@@ -45,13 +49,16 @@ private:
             number currentResult;
             
             try {
-                switch (inputRow.size()) {
-                    case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
-                    case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
-                    case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
-                    case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
-                    default: 
-                        return 0.0L;
+                if (inputRow.size() <= 4) {
+                    switch (inputRow.size()) {
+                        case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
+                        case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
+                        case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                        case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                        default: currentResult = 0.0L; break;
+                    }
+                } else {
+                    currentResult = mutableFormula.evaluate(inputRow);
                 }
             } catch (...) {
                 return 0.0L;
@@ -120,10 +127,16 @@ private:
             try {
                 const auto& inputRow = input[i];
                 number predicted;
-                switch (inputRow.size()) {
-                    case 1: predicted = mutableFormula.evaluate(inputRow[0]); break;
-                    case 2: predicted = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
-                    default: continue;
+                if (inputRow.size() <= 4) {
+                    switch (inputRow.size()) {
+                        case 1: predicted = mutableFormula.evaluate(inputRow[0]); break;
+                        case 2: predicted = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
+                        case 3: predicted = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                        case 4: predicted = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                        default: continue;
+                    }
+                } else {
+                    predicted = mutableFormula.evaluate(inputRow);
                 }
                 
                 if (std::isfinite(predicted)) {

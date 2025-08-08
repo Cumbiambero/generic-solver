@@ -1,7 +1,12 @@
 #ifndef GENERIC_SOLVER_ENHANCED_FITNESS_HPP
 #define GENERIC_SOLVER_ENHANCED_FITNESS_HPP
 
-#include "solver.hpp"
+#include "formula.hpp"
+#include "../utils/base.hpp"
+#include "../utils/config.hpp"
+#include <vector>
+#include <limits>
+#include <algorithm>
 
 class EnhancedEvaluator {
 public:
@@ -45,13 +50,16 @@ private:
             number currentResult;
             
             try {
-                switch (inputRow.size()) {
-                    case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
-                    case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
-                    case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
-                    case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
-                    default: 
-                        throw std::runtime_error("Too many variables for formula.evaluate");
+                if (inputRow.size() <= 4) {
+                    switch (inputRow.size()) {
+                        case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
+                        case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
+                        case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                        case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                        default: currentResult = 0.0L; break;
+                    }
+                } else {
+                    currentResult = mutableFormula.evaluate(inputRow);
                 }
             } catch (...) {
                 return 0.0L;
@@ -123,10 +131,16 @@ private:
         for (const auto& inputRow : input) {
             try {
                 number output;
-                switch (inputRow.size()) {
-                    case 1: output = mutableFormula.evaluate(inputRow[0]); break;
-                    case 2: output = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
-                    default: continue;
+                if (inputRow.size() <= 4) {
+                    switch (inputRow.size()) {
+                        case 1: output = mutableFormula.evaluate(inputRow[0]); break;
+                        case 2: output = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
+                        case 3: output = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                        case 4: output = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                        default: continue;
+                    }
+                } else {
+                    output = mutableFormula.evaluate(inputRow);
                 }
                 
                 if (std::isfinite(output)) {
