@@ -7,9 +7,10 @@ class Merger {
 public:
     Merger() : coin_(make_shared<RandomCoin>()), operationProducer(make_shared<OperationProducer>()) {}
 
-    template<typename C, typename R>
-    explicit Merger(C &coin, R &randomNumber) : coin_(make_shared<C>(coin)), operationProducer(
-            make_shared<OperationProducer>(OperationProducer(randomNumber))) {}
+        template<typename C, typename R>
+        explicit Merger(C &coin, R &randomNumber)
+                : coin_(make_shared<C>(coin)),
+                    operationProducer(make_shared<OperationProducer>(std::make_shared<R>(randomNumber))) {}
 
     Formula merge(const Formula& formula1, const Formula& formula2) {
         auto leftNode = traverse(formula1.getRoot());

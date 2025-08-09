@@ -18,26 +18,15 @@ static constexpr std::array<BinaryOperationType, 5> BINARY_OPERATIONS{
 class BinaryOperation : public Node {
 public:
     BinaryOperation(string symbol, NodePtr left, NodePtr right)
-            : symbol_(std::move(symbol)), left_(std::move(left)), right_(std::move(right)) {}
+        : symbol_(std::move(symbol)), left_(std::move(left)), right_(std::move(right)) {}
 
-    template<typename L, typename R>
-    BinaryOperation(string symbol, const L& left, const R& right)
-            : symbol_(std::move(symbol)), left_(std::make_shared<L>(left)),
-              right_(std::make_shared<R>(right)) {}
-
-    template<typename R>
-    BinaryOperation(string symbol, number left, const R& right)
-            : symbol_(std::move(symbol)), left_(std::make_shared<Number>(left)),
-              right_(std::make_shared<R>(right)) {}
-
-    template<typename L>
-    BinaryOperation(string symbol, const L& left, number right)
-            : symbol_(std::move(symbol)), left_(std::make_shared<L>(left)),
-              right_(std::make_shared<Number>(right)) {}
-
+    // Convenience overloads for numeric literals
+    BinaryOperation(string symbol, number left, NodePtr right)
+        : symbol_(std::move(symbol)), left_(std::make_shared<Number>(left)), right_(std::move(right)) {}
+    BinaryOperation(string symbol, NodePtr left, number right)
+        : symbol_(std::move(symbol)), left_(std::move(left)), right_(std::make_shared<Number>(right)) {}
     BinaryOperation(string symbol, number left, number right)
-            : symbol_(std::move(symbol)), left_(std::make_shared<Number>(left)),
-              right_(std::make_shared<Number>(right)) {}
+        : symbol_(std::move(symbol)), left_(std::make_shared<Number>(left)), right_(std::make_shared<Number>(right)) {}
 
     [[nodiscard]] string toString() const override {
         return "(" + left_->toString() + symbol_ + right_->toString() + ")";
@@ -68,9 +57,11 @@ class Addition : public BinaryOperation {
 public:
     Addition(NodePtr left, NodePtr right)
         : BinaryOperation("+", std::move(left), std::move(right)) {}
-
-    template<typename L, typename R>
-    Addition(const L& left, const R& right)
+    Addition(number left, NodePtr right)
+        : BinaryOperation("+", left, std::move(right)) {}
+    Addition(NodePtr left, number right)
+        : BinaryOperation("+", std::move(left), right) {}
+    Addition(number left, number right)
         : BinaryOperation("+", left, right) {}
 
     [[nodiscard]] number calculate() const override { 
@@ -103,9 +94,11 @@ class Subtraction : public BinaryOperation {
 public:
     Subtraction(NodePtr left, NodePtr right)
         : BinaryOperation("-", std::move(left), std::move(right)) {}
-
-    template<typename L, typename R>
-    Subtraction(const L& left, const R& right)
+    Subtraction(number left, NodePtr right)
+        : BinaryOperation("-", left, std::move(right)) {}
+    Subtraction(NodePtr left, number right)
+        : BinaryOperation("-", std::move(left), right) {}
+    Subtraction(number left, number right)
         : BinaryOperation("-", left, right) {}
 
     [[nodiscard]] number calculate() const override { 
@@ -134,9 +127,11 @@ class Multiplication : public BinaryOperation {
 public:
     Multiplication(NodePtr left, NodePtr right)
         : BinaryOperation("*", std::move(left), std::move(right)) {}
-
-    template<typename L, typename R>
-    Multiplication(const L& left, const R& right)
+    Multiplication(number left, NodePtr right)
+        : BinaryOperation("*", left, std::move(right)) {}
+    Multiplication(NodePtr left, number right)
+        : BinaryOperation("*", std::move(left), right) {}
+    Multiplication(number left, number right)
         : BinaryOperation("*", left, right) {}
 
     [[nodiscard]] number calculate() const override { 
@@ -170,9 +165,11 @@ class Division : public BinaryOperation {
 public:
     Division(NodePtr left, NodePtr right)
         : BinaryOperation("/", std::move(left), std::move(right)) {}
-
-    template<typename L, typename R>
-    Division(const L& left, const R& right)
+    Division(number left, NodePtr right)
+        : BinaryOperation("/", left, std::move(right)) {}
+    Division(NodePtr left, number right)
+        : BinaryOperation("/", std::move(left), right) {}
+    Division(number left, number right)
         : BinaryOperation("/", left, right) {}
 
     [[nodiscard]] number calculate() const override { 
@@ -212,9 +209,11 @@ class Power : public BinaryOperation {
 public:
     Power(NodePtr left, NodePtr right)
         : BinaryOperation("^", std::move(left), std::move(right)) {}
-
-    template<typename L, typename R>
-    Power(const L& left, const R& right)
+    Power(number left, NodePtr right)
+        : BinaryOperation("^", left, std::move(right)) {}
+    Power(NodePtr left, number right)
+        : BinaryOperation("^", std::move(left), right) {}
+    Power(number left, number right)
         : BinaryOperation("^", left, right) {}
 
     [[nodiscard]] number calculate() const override { 

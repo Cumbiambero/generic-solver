@@ -44,15 +44,11 @@ static constexpr std::array<UnaryOperationType, 23> UNARY_OPERATIONS{
 
 class UnaryOperation : public Node {
 public:
-    template<typename O>
-    UnaryOperation(string symbol, const O& operand)
-            : symbol_(std::move(symbol)), operand_(make_shared<O>(operand)) {}
-
     UnaryOperation(string symbol, NodePtr operand)
-            : symbol_(std::move(symbol)), operand_(std::move(operand)) {}
+        : symbol_(std::move(symbol)), operand_(std::move(operand)) {}
 
-    UnaryOperation(string symbol, number value)
-            : symbol_(std::move(symbol)), operand_(make_shared<Number>(value)) {}
+    explicit UnaryOperation(string symbol, number value)
+        : symbol_(std::move(symbol)), operand_(std::make_shared<Number>(value)) {}
 
     string toString() const override {
         return symbol_ + '(' + (operand_ ? operand_->toString() : "null") + ')';
@@ -79,8 +75,8 @@ protected:
 
 class Sine : public UnaryOperation {
 public:
-    template<typename O>
-    explicit Sine(const O& operand) : UnaryOperation("sin", operand) {}
+    explicit Sine(NodePtr operand) : UnaryOperation("sin", std::move(operand)) {}
+    explicit Sine(number value) : UnaryOperation("sin", value) {}
 
     [[nodiscard]] number calculate() const override { 
         return std::sin(operand_->calculate()); 
@@ -92,8 +88,8 @@ protected:
 
 class Cosine : public UnaryOperation {
 public:
-    template<typename O>
-    explicit Cosine(const O& operand) : UnaryOperation("cos", operand) {}
+    explicit Cosine(NodePtr operand) : UnaryOperation("cos", std::move(operand)) {}
+    explicit Cosine(number value) : UnaryOperation("cos", value) {}
 
     [[nodiscard]] number calculate() const override { 
         return std::cos(operand_->calculate()); 
@@ -105,8 +101,8 @@ protected:
 
 class Tangent : public UnaryOperation {
 public:
-    template<typename O>
-    explicit Tangent(const O& operand) : UnaryOperation("tan", operand) {}
+    explicit Tangent(NodePtr operand) : UnaryOperation("tan", std::move(operand)) {}
+    explicit Tangent(number value) : UnaryOperation("tan", value) {}
 
     [[nodiscard]] number calculate() const override { 
         return std::tan(operand_->calculate()); 
@@ -118,8 +114,8 @@ protected:
 
 class Square : public UnaryOperation {
 public:
-    template<typename O>
-    explicit Square(const O& operand) : UnaryOperation("^2", operand) {}
+    explicit Square(NodePtr operand) : UnaryOperation("^2", std::move(operand)) {}
+    explicit Square(number value) : UnaryOperation("^2", value) {}
 
     [[nodiscard]] number calculate() const override {
         const number value = operand_->calculate();
@@ -138,8 +134,8 @@ public:
 
 class Cube : public UnaryOperation {
 public:
-    template<typename O>
-    explicit Cube(const O& operand) : UnaryOperation("^3", operand) {}
+    explicit Cube(NodePtr operand) : UnaryOperation("^3", std::move(operand)) {}
+    explicit Cube(number value) : UnaryOperation("^3", value) {}
 
     [[nodiscard]] number calculate() const override {
         const number value = operand_->calculate();
@@ -158,8 +154,8 @@ public:
 
 class SquareRoot : public UnaryOperation {
 public:
-    template<typename O>
-    explicit SquareRoot(const O& operand) : UnaryOperation("sqrt", operand) {}
+    explicit SquareRoot(NodePtr operand) : UnaryOperation("sqrt", std::move(operand)) {}
+    explicit SquareRoot(number value) : UnaryOperation("sqrt", value) {}
 
     [[nodiscard]] number calculate() const override { 
         return std::sqrt(operand_->calculate()); 
@@ -171,8 +167,8 @@ protected:
 
 class SquareRootNegative : public SquareRoot {
 public:
-    template<typename O>
-    explicit SquareRootNegative(const O& operand) : SquareRoot(operand) {}
+    explicit SquareRootNegative(NodePtr operand) : SquareRoot(std::move(operand)) {}
+    explicit SquareRootNegative(number value) : SquareRoot(value) {}
 
     [[nodiscard]] number calculate() const override { 
         return -std::sqrt(operand_->calculate()); 
@@ -181,8 +177,8 @@ public:
 
 class CubeRoot : public UnaryOperation {
 public:
-    template<typename O>
-    explicit CubeRoot(const O& operand) : UnaryOperation("cbrt", operand) {}
+    explicit CubeRoot(NodePtr operand) : UnaryOperation("cbrt", std::move(operand)) {}
+    explicit CubeRoot(number value) : UnaryOperation("cbrt", value) {}
 
     [[nodiscard]] number calculate() const override { 
         return std::cbrt(operand_->calculate()); 
@@ -194,8 +190,8 @@ protected:
 
 class LogarithmNatural : public UnaryOperation {
 public:
-    template<typename O>
-    explicit LogarithmNatural(const O& operand) : UnaryOperation("log", operand) {}
+    explicit LogarithmNatural(NodePtr operand) : UnaryOperation("log", std::move(operand)) {}
+    explicit LogarithmNatural(number value) : UnaryOperation("log", value) {}
 
     [[nodiscard]] number calculate() const override { 
         return std::log(operand_->calculate()); 
@@ -207,9 +203,10 @@ protected:
 
 class LogarithmCommon : public UnaryOperation {
 public:
-    template<typename O>
-    explicit LogarithmCommon(const O& operand)
-            : UnaryOperation("log10", operand) {}
+    explicit LogarithmCommon(NodePtr operand)
+        : UnaryOperation("log10", std::move(operand)) {}
+    explicit LogarithmCommon(number value)
+        : UnaryOperation("log10", value) {}
 
     [[nodiscard]] number calculate() const override { 
         return std::log10(operand_->calculate()); 

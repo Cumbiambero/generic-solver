@@ -8,12 +8,14 @@ TEST_CASE("Purger") {
     vec.push_back(r);
     vec.push_back(i);
 
-    Multiplication multiplication(r, i);
-    Division division(multiplication, Number(2));
-
-    Formula formula(division, vec);
+    auto var_r = std::make_shared<Variable>(r);
+    auto var_i = std::make_shared<Variable>(i);
+    Formula formula(std::make_shared<Division>(
+        std::make_shared<Multiplication>(var_r, var_i),
+        std::make_shared<Number>(2)
+    ), vec);
     CHECK(formula.toString() == "((r*i)/2)");
     Purger purger(testCoin, testRandomNumber);
-    purger.change(formula);
+    formula = purger.change(formula);
     CHECK(formula.toString() == "(r*i)");
 }

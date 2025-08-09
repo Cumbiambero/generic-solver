@@ -7,6 +7,7 @@
 class OperationProducer {
 public:
     OperationProducer() : randomNumber(make_shared<AlmostRandomNumber>()) {}
+    explicit OperationProducer(shared_ptr<RandomNumber> rng) : randomNumber(std::move(rng)) {}
 
     shared_ptr<Node> produce(const vector<Variable> &params) {
         size_t size = params.size();

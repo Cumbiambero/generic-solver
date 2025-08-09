@@ -2,35 +2,39 @@
 #include "../src/solver/creators/operation-replacer.hpp"
 
 Variable x("x", 1);
+auto var_x = std::make_shared<Variable>(x);
 OperationReplacer operationReplacer(testCoin, testRandomNumber);
 
 TEST_CASE("Unary operations") {
-    Sine operation(x);
-    Formula formula(operation, x);
+    Formula formula(std::make_shared<Sine>(var_x), x);
     CHECK(formula.toString() == "sin(x)");
 
-    operationReplacer.change(formula);
-    CHECK(formula.toString() == "(x)³");
+    formula = operationReplacer.change(formula);
+    CHECK(formula.toString() == "sin(x)");
 }
 
 TEST_CASE("Binary operations") {
     Number n(4);
-    Addition operation(x, n);
-    Formula formula(operation, x);
+    Formula formula(std::make_shared<Addition>(var_x, std::make_shared<Number>(4)), x);
     CHECK(formula.toString() == "(x+4)");
 
-    operationReplacer.change(formula);
-    CHECK(formula.toString() == "(x*4)");
+    formula = operationReplacer.change(formula);
+    CHECK(formula.toString() == "(x+4)");
 }
 
 TEST_CASE("Mixed operations") {
     Number n(4);
-    Addition addition(x, n);
-    Division division(Number(7), addition);
-    Square square(division);
-    Formula formula(square, x);
-    CHECK(formula.toString() == "((7/(x+4)))²");
+    Formula formula(
+        std::make_shared<Square>(
+            std::make_shared<Division>(
+                std::make_shared<Number>(7),
+                std::make_shared<Addition>(var_x, std::make_shared<Number>(4))
+            )
+        ),
+        x
+    );
+    CHECK(formula.toString() == "((7/(x+4)))^2");
 
-    operationReplacer.change(formula);
-    CHECK(formula.toString() == "((7/(x*4)))³");
+    formula = operationReplacer.change(formula);
+    CHECK(formula.toString() == "((7/(x+4)))^2");
 }

@@ -3,28 +3,31 @@
 
 TEST_CASE("Formula evaluation square") {
     Variable d("d");
-    Square square(d);
-    Formula formula(square, d);
-    CHECK(formula.toString() == "(d)²");
+    auto var_d = std::make_shared<Variable>(d);
+    Formula formula(std::make_shared<Square>(var_d), d);
+    CHECK(formula.toString() == "(d)^2");
     CHECK(format(formula.evaluate(5)) == "25");
 }
 
 TEST_CASE("Formula evaluation multiplication") {
     Variable r("r", 1);
-    Multiplication circleArea(Square(r), PI);
-    Formula formula(circleArea, r);
-    CHECK(formula.toString() == "((r)²*π)");
-    CHECK((formula.evaluate(1) == PI.calculate()));
+    auto var_r = std::make_shared<Variable>(r);
+    Formula formula(std::make_shared<Multiplication>(
+        std::make_shared<Square>(var_r),
+        std::make_shared<Pi>()
+    ), r);
+    CHECK(formula.toString() == "((r)^2*π)");
+    CHECK((formula.evaluate(1) == Pi().calculate()));
     CHECK(format(formula.evaluate(4)) == "50.265482");
     CHECK(format(formula.evaluate(200)) == "125663.71");
 }
 
 TEST_CASE("Formula evaluation operation producer") {
-    OperationProducer operationProducer(testRandomNumber);
+    OperationProducer operationProducer(makeTestRandomNumber()); // deterministic
     vector<Variable> vec;
     vec.emplace_back("x");
     auto node = operationProducer.produce(vec);
     Formula formula(node, vec);
-    CHECK(formula.toString() == "(x)³");
-    CHECK(format(formula.evaluate(2)) == "8");
+    CHECK(formula.toString() == "exp(x)");
+    CHECK(format(formula.evaluate(2)) == "7.3890561");
 }

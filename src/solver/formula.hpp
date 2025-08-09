@@ -11,12 +11,11 @@
 
 class Formula {
 public:
-    template<typename N>
-    Formula(N& node, Variable params...) : Formula(node, vector<Variable>{std::move(params)}) {}
+    Formula(NodePtr node, Variable param)
+        : Formula(std::move(node), vector<Variable>{param}) {}
 
-    template<typename N>
-    Formula(N& node, const vector<Variable>& variables)
-            : variables_(variables), root_(make_shared<Wrapper>(Wrapper(node))) {
+    Formula(NodePtr node, const vector<Variable>& variables)
+            : variables_(variables), root_(std::make_shared<Wrapper>(std::move(node))) {
         init(variables);
     }
 
