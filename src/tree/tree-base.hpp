@@ -43,9 +43,6 @@ public:
 
     explicit Wrapper(NodePtr node) : node_(std::move(node)) {}
 
-    template<typename N>
-    explicit Wrapper(const N& nodeObj) : node_(std::make_shared<N>(nodeObj)) {}
-
     [[nodiscard]] string toString() const override { 
         return node_ ? node_->toString() : "null"; 
     }

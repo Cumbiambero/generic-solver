@@ -7,8 +7,8 @@
 #include "../src/solver/changers/incrementor-by-doubling.hpp"
 
 Variable x("x", 1);
-Division division(x, Number(2));
-Formula formula(division, x);
+auto var_x = std::make_shared<Variable>(x);
+Formula formula(std::make_shared<Division>(var_x, std::make_shared<Number>(2)), x);
 ReducerByOne reducerByOne(testCoin);
 ReducerByFragment reducerByFragment(testCoin);
 ReducerByHalving reducerByHalving(testCoin);
@@ -19,16 +19,16 @@ IncrementorByDoubling incrementorByDoubling(testCoin);
 TEST_CASE("Increment and decrement") {
     CHECK(formula.toString() == "(x/2)");
 
-    incrementorByOne.change(formula);
+    formula = incrementorByOne.change(formula);
     CHECK(formula.toString() == "(x/3)");
 
     for (int i = 0; i < 100; ++i) {
-        incrementorByOne.change(formula);
+        formula = incrementorByOne.change(formula);
     }
     CHECK(formula.toString() == "(x/53)");
 
     for (int i = 0; i < 10; ++i) {
-        reducerByOne.change(formula);
+        formula = reducerByOne.change(formula);
     }
     CHECK(formula.toString() == "(x/48)");
 }
@@ -36,7 +36,7 @@ TEST_CASE("Increment and decrement") {
 TEST_CASE("Smallest fractions") {
     number beforeIncrement(formula.getNumbers()[0]->calculate());
     for(int i = 0; i < 10; ++i) {
-        incrementorByFragment.change(formula);
+        formula = incrementorByFragment.change(formula);
     }
     number afterIncrement(formula.getNumbers()[0]->calculate());
 
@@ -44,7 +44,7 @@ TEST_CASE("Smallest fractions") {
 
     number beforeDecrement(formula.getNumbers()[0]->calculate());
     for(int i = 0; i < 10; ++i) {
-        reducerByFragment.change(formula);
+        formula = reducerByFragment.change(formula);
     }
     number afterDecrement(formula.getNumbers()[0]->calculate());
 
@@ -56,14 +56,14 @@ TEST_CASE("Halving and doubling") {
     formula.getNumbers()[0]->setValue(60);
     CHECK(formula.toString() == "(x/60)");
 
-    incrementorByDoubling.change(formula);
+    formula = incrementorByDoubling.change(formula);
     CHECK(formula.toString() == "(x/120)");
 
-    reducerByHalving.change(formula);
+    formula = reducerByHalving.change(formula);
     CHECK(formula.toString() == "(x/60)");
 
     for(int i = 0; i < 10; ++i) {
-        reducerByHalving.change(formula);
+        formula = reducerByHalving.change(formula);
     }
     CHECK(formula.toString() == "(x/1.875)");
 }

@@ -8,9 +8,10 @@ class Creator : public Changer {
 public:
     Creator() : coin_(make_shared<RandomCoin>()), operationProducer(make_shared<OperationProducer>()) {}
 
-    template<typename C, typename R>
-    explicit Creator(C &coin, R &randomNumber) : coin_(make_shared<C>(coin)), operationProducer(
-            make_shared<OperationProducer>(OperationProducer(randomNumber))) {}
+        template<typename C, typename R>
+        explicit Creator(C &coin, R &randomNumber)
+                : coin_(make_shared<C>(coin)),
+                    operationProducer(make_shared<OperationProducer>(std::make_shared<R>(randomNumber))) {}
 
     ~Creator() override = default;
 

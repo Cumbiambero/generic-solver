@@ -3,20 +3,20 @@
 
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 
-string getPath(const string &path) {
-    const filesystem::path &currentDir = std::filesystem::current_path().filename();
+std::string getPath(const std::string &filename) {
+    const auto &currentDir = std::filesystem::current_path().filename();
     if (currentDir == "test") {
-        return "../../" + path;
+        return filename;
     }
     if (currentDir == "build") {
-        return "../" + path;
+        return "test/" + filename;
     }
     if (currentDir == "code") {
-        return path;
-    } else {
-        throw invalid_argument("Please run the test from within the test directory");
+        return "../test/" + filename;
     }
+    throw std::invalid_argument("Please run the test from within the test directory");
 }
 
 TEST_CASE("CSV Parsing: Multiple values") {
@@ -25,7 +25,7 @@ TEST_CASE("CSV Parsing: Multiple values") {
                                           {2,  3},
                                           {5,  8},
                                           {13, 21}};
-    for (int line = 0; line < input.size(); ++line) {
+    for (std::size_t line = 0; line < input.size(); ++line) {
         CHECK((input[line][0] == expected[line][0]));
         CHECK((input[line][1] == expected[line][1]));
     }
@@ -43,13 +43,15 @@ TEST_CASE("CSV Parsing: Decimals") {
                                           {201.06192982974676},
                                           {254.46900494077323},
                                           {314.1592653589793}};
-    for (int line = 0; line < input.size(); ++line) {
+    for (std::size_t line = 0; line < input.size(); ++line) {
         CHECK((input[line][0] == expected[line][0]));
     }
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-result"
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wunused-result"
+#endif
 
 TEST_CASE("CSV Parsing: Incorrect path") {
     CHECK_THROWS_WITH(parseCSV("non-existing-file.csv"), "Couldn't read file: non-existing-file.csv");
@@ -59,4 +61,6 @@ TEST_CASE("CSV Parsing: Incorrect content") {
     CHECK_THROWS_WITH(parseCSV(getPath("test/resources/csv-parser-nok.csv")), "Incorrect content detected: two");
 }
 
-#pragma clang diagnostic pop
+#if defined(__clang__)
+#  pragma clang diagnostic pop
+#endif

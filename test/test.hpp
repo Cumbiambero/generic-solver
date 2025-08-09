@@ -5,10 +5,12 @@
 #include "../src/utils/arbitrary.hpp"
 #include "../src/solver/formula.hpp"
 #include "doctest/doctest.h" // Ubuntu: sudo apt-get install doctest-dev or from https://github.com/doctest/doctest
+#include <sstream>
+#include <iomanip>
 
-string format(number value) {
-    ostringstream oss;
-    oss << setprecision(8) << noshowpoint << value;
+inline std::string format(number value) {
+    std::ostringstream oss;
+    oss << std::setprecision(8) << std::noshowpoint << value;
     return oss.str();
 }
 
@@ -30,10 +32,15 @@ public:
     }
 };
 
+
 static Pi PI;
 static Euler E;
 
 TestCoin testCoin;
 TestRandomNumber testRandomNumber;
+
+inline std::shared_ptr<RandomNumber> makeTestRandomNumber() {
+    return std::make_shared<TestRandomNumber>();
+}
 
 #endif
