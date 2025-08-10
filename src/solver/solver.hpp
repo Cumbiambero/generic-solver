@@ -1,3 +1,4 @@
+#include <limits>
 #ifndef GENERIC_SOLVER_SOLVER_HPP
 #define GENERIC_SOLVER_SOLVER_HPP
 
@@ -191,17 +192,17 @@ public:
 
     void print() const {
         std::cout << "\nMatches:\n";
-        printSolutions(hallOfFame_);
+        this->printSolutions(hallOfFame_);
         std::cout << "\nPrevious intentions:\n";
-        printSolutions(solutions_);
+        this->printSolutions(solutions_);
     }
     
     void requestStop() noexcept {
         currentState_ = SolverState::DONE;
     }
 
-    static void printSolutions(const std::set<Solution>& target, 
-                             std::size_t numberOfResults = NUMBER_OF_RESULTS) {
+    void printSolutions(const std::set<Solution>& target, 
+                       std::size_t numberOfResults = NUMBER_OF_RESULTS) const {
         std::cout.width(FORMULA_WIDTH);
         std::cout << std::left << "Formula:";
         std::cout.width(RATE_WIDTH);
@@ -215,8 +216,12 @@ public:
             std::cout.width(FORMULA_WIDTH);
             std::cout << std::left << revIt->getFormula().toString();
             std::cout.width(RATE_WIDTH);
-            std::cout << std::right << std::fixed 
-                      << std::setprecision(RATE_PRECISION) << revIt->getRate() << std::endl;
+            std::cout << std::right << std::fixed << std::setprecision(RATE_PRECISION);
+            if (isPerfectMatch(revIt->getFormula())) {
+                std::cout << 1.0 << std::endl;
+            } else {
+                std::cout << revIt->getRate() << std::endl;
+            }
         }
         
         // Print C++ code section
@@ -336,10 +341,17 @@ private:
                 lastBestRate = currentBestRate;
             }
             
-            // Stop if target fitness achieved
+            // Stop if target fitness achieved or perfect match found
             if (currentBestRate >= targetFitness_) {
                 currentState_ = SolverState::DONE;
                 break;
+            }
+            // Extra: stop if any solution is a perfect match
+            for (const auto& sol : solutions_) {
+                if (isPerfectMatch(sol.getFormula())) {
+                    currentState_ = SolverState::DONE;
+                    break;
+                }
             }
             
             // Progressive intervention when stagnated
@@ -360,7 +372,7 @@ private:
         const auto rate = evaluateFormula(formula);
         Solution solution(formula, type, rate);
         
-        if (rate >= targetFitness_) {
+        if (rate >= targetFitness_ || isPerfectMatch(formula)) {
             std::unique_lock hallLock(hallOfFameMutex_);
             hallOfFame_.insert(solution);
             currentState_ = SolverState::DONE;
@@ -458,8 +470,8 @@ private:
 
     [[nodiscard]] Changer* pickCreativeChanger() {
         auto creativeTypes = {
-            ChangerType::TARGETED_TUNER,           // NEW: Prioritize targeted optimization
-            ChangerType::PATTERN_OPTIMIZER,       // NEW: Pattern-specific improvements
+            ChangerType::TARGETED_TUNER,
+            ChangerType::PATTERN_OPTIMIZER,
             ChangerType::SIMPLIFIER,
             ChangerType::FUNCTION_TRANSFORMER,
             ChangerType::VARIABLE_SWAPPER,
@@ -501,6 +513,35 @@ private:
         lock.unlock();
         
         return changerPicker_.pickChanger(changerType);
+    }
+
+private:
+    bool isPerfectMatch(const Formula& formula) const {
+        if (input_.size() != results_.size()) return false;
+        Formula mutableFormula = formula;
+        for (std::size_t i = 0; i < results_.size(); ++i) {
+            const auto& inputRow = input_[i];
+            number currentResult;
+            try {
+                if (inputRow.size() <= 4) {
+                    switch (inputRow.size()) {
+                        case 1: currentResult = mutableFormula.evaluate(inputRow[0]); break;
+                        case 2: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1]); break;
+                        case 3: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2]); break;
+                        case 4: currentResult = mutableFormula.evaluate(inputRow[0], inputRow[1], inputRow[2], inputRow[3]); break;
+                        default: currentResult = 0.0L; break;
+                    }
+                } else {
+                    currentResult = mutableFormula.evaluate(inputRow);
+                }
+            } catch (...) {
+                return false;
+            }
+            if (!std::isfinite(currentResult)) return false;
+            const number expectedResult = results_[i][0];
+            if (std::abs(expectedResult - currentResult) >= EPSILON) return false;
+        }
+        return true;
     }
 };
 

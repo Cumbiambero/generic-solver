@@ -62,12 +62,7 @@ TEST_CASE("Divisions") {
     auto n0 = std::make_shared<Number>(0);
     auto n3_2 = std::make_shared<Number>(3);
     CHECK(format(Division(n24, n9).calculate()) == "2.6666667");
-<<<<<<< HEAD
-    auto divByZero = Division(n1, n0).calculate();
-    CHECK(std::isnan(divByZero));
-=======
     CHECK((Division(n1, n0).calculate() == std::numeric_limits<number>::infinity()));
->>>>>>> 1460f4d65a7255c809aea5f37c017a5db5ba945b
 
     auto div13 = std::make_shared<Division>(n1, n3_2);
     CHECK(format(
@@ -100,10 +95,5 @@ TEST_CASE("Trigonometric") {
     Addition twoPi(pi3, pi4);
     auto twoPiPtr = std::make_shared<Addition>(pi3, pi4);
     CHECK(format(Addition(std::make_shared<Cosine>(twoPiPtr), std::make_shared<Sine>(twoPiPtr)).calculate()) == "1");
-<<<<<<< HEAD
-    CHECK(std::abs(Cosine(std::make_shared<Cosine>(twoPiPtr)).calculate() - 0.54030231) < 1e-7);
-=======
     CHECK(format(Cosine(std::make_shared<Cosine>(twoPiPtr)).calculate()) == "1");
->>>>>>> 1460f4d65a7255c809aea5f37c017a5db5ba945b
-    CHECK(format(Cosine(twoPiPtr).calculate()) == "1");
 }

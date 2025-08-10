@@ -44,11 +44,7 @@ TEST_CASE("CSV Parsing: Decimals") {
                                           {254.46900494077323},
                                           {314.1592653589793}};
     for (std::size_t line = 0; line < input.size(); ++line) {
-<<<<<<< HEAD
         CHECK(std::abs(input[line][0] - expected[line][0]) < 1e-8);
-=======
-        CHECK((input[line][0] == expected[line][0]));
->>>>>>> 1460f4d65a7255c809aea5f37c017a5db5ba945b
     }
 }
 

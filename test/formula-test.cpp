@@ -28,11 +28,6 @@ TEST_CASE("Formula evaluation operation producer") {
     vec.emplace_back("x");
     auto node = operationProducer.produce(vec);
     Formula formula(node, vec);
-<<<<<<< HEAD
     CHECK(formula.toString() == "exp(x)");
     CHECK(format(formula.evaluate(2)) == "7.3890561");
-=======
-    CHECK(formula.toString() == "(x)^2");
-    CHECK(format(formula.evaluate(2)) == "4");
->>>>>>> 1460f4d65a7255c809aea5f37c017a5db5ba945b
 }
