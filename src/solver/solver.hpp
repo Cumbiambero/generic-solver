@@ -1,3 +1,5 @@
+#include <iomanip>
+#include <vector>
 #include <limits>
 #ifndef GENERIC_SOLVER_SOLVER_HPP
 #define GENERIC_SOLVER_SOLVER_HPP
@@ -7,6 +9,8 @@
 #include "changers/flipper.hpp"
 #include "enhanced-fitness.hpp"
 #include "ultra-precision-fitness.hpp"
+#include "../tree/unary.hpp"
+#include "../tree/binary.hpp"
 #include <cmath>
 #include <thread>
 #include <utility>
@@ -17,6 +21,7 @@
 #include <set>
 #include <chrono>
 #include <iomanip>
+#include <vector>
 
 class Solution {
 public:
@@ -159,17 +164,51 @@ public:
         }
     }
 
-    void start() {
+    // Returns true if a solution meeting targetFitness_ (or perfect) was found
+    bool start() {
+        constexpr std::size_t INITIAL_POPULATION_SIZE = 20;
         if (currentState_ == SolverState::READY) {
-            auto node = operationProducer_.produce(variables_);
-            Formula formula(node, variables_);
-            const auto rate = useEnhancedFitness_ ? 
-                enhancedEvaluator_->rate(formula, input_, results_) :
-                Evaluator::rate(formula, input_, results_);
-            
             std::unique_lock lock(solutionsMutex_);
-            solutions_.emplace(std::move(formula), ChangerType::FLIPPER, rate);
+            for (std::size_t i = 0; i < INITIAL_POPULATION_SIZE; ++i) {
+                auto node = operationProducer_.produce(variables_);
+                if (!node) continue;
+                Formula formula(node, variables_);
+                const auto rate = useEnhancedFitness_ ? 
+                    enhancedEvaluator_->rate(formula, input_, results_) :
+                    Evaluator::rate(formula, input_, results_);
+                solutions_.emplace(std::move(formula), ChangerType::FLIPPER, rate);
+            }
+            // Heuristic seeds (helps escape polynomial exponent stagnation)
+            try {
+                if (!variables_.empty()) {
+                    auto varNode = std::make_shared<Variable>(variables_[0]);
+                    // r^2
+                    auto squareNode = std::make_shared<Square>(varNode);
+                    auto piNode = std::make_shared<Pi>();
+                    auto twoNode = std::make_shared<Number>(2.0L);
+                    auto approxPiNode = std::make_shared<Number>(3.14159265358979323846L);
+
+                    // pi * r^2
+                    auto areaNode = std::make_shared<Multiplication>(piNode, squareNode);
+                    // 2 * pi * r
+                    auto circumNode = std::make_shared<Multiplication>(twoNode, std::make_shared<Multiplication>(piNode, varNode));
+                    // approx constant * r^2 (alternative path)
+                    auto approxAreaNode = std::make_shared<Multiplication>(approxPiNode, std::make_shared<Square>(varNode));
+
+                    std::vector<NodePtr> heuristicRoots { areaNode, circumNode, approxAreaNode };
+                    for (auto &root : heuristicRoots) {
+                        Formula f(root, variables_);
+                        const auto rate = useEnhancedFitness_ ? 
+                            enhancedEvaluator_->rate(f, input_, results_) :
+                            Evaluator::rate(f, input_, results_);
+                        solutions_.emplace(std::move(f), ChangerType::SIMPLIFIER, rate);
+                    }
+                }
+            } catch (...) {
+                // Ignore heuristic seeding failures
+            }
             lock.unlock();
+            shrink();
         }
         
         currentState_ = SolverState::RUNNING;
@@ -185,9 +224,19 @@ public:
             worker.join();
         }
         
+        bool success = false;
         if (currentState_ == SolverState::DONE) {
+            {
+                std::shared_lock hallLock(hallOfFameMutex_);
+                for (const auto& sol : hallOfFame_) {
+                    if (sol.getRate() >= targetFitness_ || isPerfectMatch(sol.getFormula())) {
+                        success = true; break;
+                    }
+                }
+            }
             print();
         }
+        return success;
     }
 
     void print() const {
@@ -244,19 +293,18 @@ public:
         return currentState_.load();
     }
 
-    void shrink() {
-        std::unique_lock lock(solutionsMutex_);
-        const auto originalSize = solutions_.size();
-        
-        if (originalSize > SOLUTIONS_SIZE) {
+    void shrinkNoPrintNoUnlock() {
+        if (solutions_.size() > SOLUTIONS_SIZE) {
             auto rBegin = solutions_.rbegin();
             std::advance(rBegin, SOLUTIONS_SIZE);
             auto from = rBegin.base();
             solutions_.erase(solutions_.begin(), from);
         }
-        
-        lock.unlock();
-        std::cout << originalSize - solutions_.size() << " solutions deleted.\n";
+    }
+
+    void shrink() {
+        std::unique_lock lock(solutionsMutex_);
+        shrinkNoPrintNoUnlock();
     }
 
 private:
@@ -291,8 +339,14 @@ private:
         std::size_t stagnationCounter = 0;
         std::size_t aggressiveStagnationCounter = 0;
         number lastBestRate = 0.0L;
+        std::size_t iterations = 0;
+        constexpr std::size_t ITERATION_HARD_CAP = 200000;
         
         while (currentState_.load() == SolverState::RUNNING) {
+            if (++iterations > ITERATION_HARD_CAP) {
+                currentState_ = SolverState::DONE;
+                break;
+            }
             // Check deadline
             if (hasDeadline_.load()) {
                 if (std::chrono::steady_clock::now() >= deadline_) {
@@ -320,9 +374,16 @@ private:
             const Formula existingFormula = reverseIterator->getFormula();
             readLock.unlock();
             
-            Formula newFormula = (changer == nullptr) 
-                ? merger_.merge(bestFormula, existingFormula)
-                : changer->change(merger_.getCoin()->toss() ? bestFormula : existingFormula);
+            Formula newFormula = bestFormula;
+            try {
+                if (changer == nullptr) {
+                    newFormula = merger_.merge(bestFormula, existingFormula);
+                } else {
+                    newFormula = changer->change(merger_.getCoin()->toss() ? bestFormula : existingFormula);
+                }
+            } catch (...) {
+                continue; // skip failed mutation
+            }
                 
             const auto changerType = changer ? changer->getType() : ChangerType::MERGER;
             storeSolution(changerType, newFormula);
@@ -346,11 +407,14 @@ private:
                 currentState_ = SolverState::DONE;
                 break;
             }
-            // Extra: stop if any solution is a perfect match
-            for (const auto& sol : solutions_) {
-                if (isPerfectMatch(sol.getFormula())) {
-                    currentState_ = SolverState::DONE;
-                    break;
+            // Extra: stop if any solution is a perfect match (snapshot under lock)
+            {
+                std::shared_lock anyLock(solutionsMutex_);
+                for (const auto& sol : solutions_) {
+                    if (isPerfectMatch(sol.getFormula())) {
+                        currentState_ = SolverState::DONE;
+                        break;
+                    }
                 }
             }
             
@@ -388,9 +452,13 @@ private:
             hallLock.unlock();
         }
         
-        std::unique_lock solutionsLock(solutionsMutex_);
-        solutions_.insert(std::move(solution));
-        solutionsLock.unlock();
+        {
+            std::unique_lock solutionsLock(solutionsMutex_);
+            solutions_.insert(std::move(solution));
+            if (solutions_.size() > SOLUTIONS_SIZE) {
+                shrinkNoPrintNoUnlock();
+            }
+        }
     }
 
     void injectRandomness() {
@@ -406,11 +474,17 @@ private:
         
         for (std::size_t i = 0; i < RANDOM_INJECTION_COUNT; ++i) {
             auto node = operationProducer_.produce(variables_);
-            Formula randomFormula(node, variables_);
-            const auto rate = evaluateFormula(randomFormula);
-            solutions_.emplace(std::move(randomFormula), ChangerType::FLIPPER, rate);
+            if (!node) continue;
+            try {
+                Formula randomFormula(node, variables_);
+                const auto rate = evaluateFormula(randomFormula);
+                solutions_.emplace(std::move(randomFormula), ChangerType::FLIPPER, rate);
+            } catch (...) {
+                // skip bad random formula
+            }
         }
-        lock.unlock();
+    lock.unlock();
+    shrink();
     }
 
     void injectCreativeRandomness() {
@@ -456,7 +530,8 @@ private:
             }
         }
         
-        lock.unlock();
+    lock.unlock();
+    shrink();
     }
 
     [[nodiscard]] number evaluateFormula(const Formula& formula) const {

@@ -7,14 +7,12 @@
 static constexpr char CSV_DELIMITER = ',';
 
 // Algorithm tuning
-// Threshold used to consider a solution "good enough" for the Hall of Fame/early stop.
-// It should not exceed any fitness caps. Enhanced and basic evaluators cap at ~0.999999.
 static constexpr number ALMOST_PERFECT = 0.999999L;
 static constexpr number EPSILON_FOR_RATE = 1.0L - ALMOST_PERFECT;
 static constexpr std::size_t SOLUTIONS_SIZE = 1000;
 static constexpr std::size_t HALL_OF_FAME_SIZE = 3;
 static constexpr std::size_t STAGNATION_THRESHOLD = 200;
-static constexpr std::size_t RANDOM_INJECTION_COUNT = 500;
+static constexpr std::size_t RANDOM_INJECTION_COUNT = 50;
 static constexpr std::size_t AGGRESSIVE_STAGNATION_THRESHOLD = 100;
 
 // Display formatting

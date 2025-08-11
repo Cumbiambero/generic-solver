@@ -6,13 +6,17 @@
 #include <thread>
 #include <chrono>
 
-int start(Solver& solver) {
-    std::thread solverThread([&solver]() { solver.start(); });
+int start(Solver& solver, bool noCli) {
+    if (noCli) { // Run solver synchronously without CLI thread
+        bool success = solver.start();
+        return success ? 0 : 1;
+    }
+    bool solverResult = false;
+    std::thread solverThread([&solver, &solverResult]() { solverResult = solver.start(); });
     std::thread commandLineThread([&solver]() { interactWithSolver(solver); });
-    
     commandLineThread.join();
     solverThread.join();
-    return 0;
+    return solverResult ? 0 : 1;
 }
 
 int main(int argc, char** argv) {
@@ -39,9 +43,9 @@ int main(int argc, char** argv) {
             variables.emplace_back(argv[i]);
         }
 
-        // Defaults
         bool useEnhanced = true;
         bool useUltra = false;
+        bool noCli = false;
         number target = ALMOST_PERFECT;
         std::size_t threads = 0; // auto
         std::chrono::seconds timeLimit{0};
@@ -71,6 +75,8 @@ int main(int argc, char** argv) {
             } else if (arg == "--threads") {
                 threads = static_cast<std::size_t>(std::stoull(next()));
                 ++i;
+            } else if (arg == "--no-cli") {
+                noCli = true;
             } else if (arg == "--help" || arg == "-h") {
                 std::cout << "Usage: solver <input.csv> <results.csv> <var...> [options]\n"
                           << "Options:\n"
@@ -78,6 +84,7 @@ int main(int argc, char** argv) {
                           << "  --target <0..1>                   Early-stop target fitness (default: " << (double)ALMOST_PERFECT << ")\n"
                           << "  --time <seconds>                  Time limit; stops after N seconds\n"
                           << "  --threads <N>                     Number of worker threads (default: CPU-1)\n"
+                          << "  --no-cli                          Disable interactive prompt (batch mode)\n"
                           << "  -h, --help                        Show this help\n";
                 return 0;
             } else {
@@ -93,7 +100,7 @@ int main(int argc, char** argv) {
 
         Solver solver(std::move(variables), std::move(input), std::move(results),
                       useEnhanced, useUltra, target, threads, timeLimit);
-        return start(solver);
+    return start(solver, noCli);
         
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
