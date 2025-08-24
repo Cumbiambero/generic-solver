@@ -3,8 +3,6 @@
 The main idea is to create a solver that is able to guess a possible formula for any given list of results.
 An evolutionary approach is used.
 
-The project has not yet reached a usable state.
-
 ## Usage
 
 ### Installation
