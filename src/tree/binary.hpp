@@ -7,12 +7,12 @@
 #include <array>
 
 enum class BinaryOperationType {
-    ADD, SUB, MUL, DIV, POW
+    ADD, SUB, MUL, DIV, POW, MOD
 };
 
-static constexpr std::array<BinaryOperationType, 5> BINARY_OPERATIONS{
+static constexpr std::array<BinaryOperationType, 6> BINARY_OPERATIONS{
     BinaryOperationType::ADD, BinaryOperationType::SUB, BinaryOperationType::MUL, 
-    BinaryOperationType::DIV, BinaryOperationType::POW
+    BinaryOperationType::DIV, BinaryOperationType::POW, BinaryOperationType::MOD
 };
 
 class BinaryOperation : public Node {
@@ -72,18 +72,20 @@ public:
         auto leftS = left_->simplify();
         auto rightS = right_->simplify();
 
-        // 0 + x = x
+        // 0 + x = x (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (std::abs(leftNum->calculate()) < EPSILON) return rightS;
+            if (leftNum->isLiteralNumber() && std::abs(leftNum->calculate()) < EPSILON) return rightS;
         }
-        // x + 0 = x
+        // x + 0 = x (only for literal numbers)
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (std::abs(rightNum->calculate()) < EPSILON) return leftS;
+            if (rightNum->isLiteralNumber() && std::abs(rightNum->calculate()) < EPSILON) return leftS;
         }
-        // Constant folding: number + number = result
+        // Constant folding: number + number = result (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-                return std::make_shared<Number>(leftNum->calculate() + rightNum->calculate());
+                if (leftNum->isLiteralNumber() && rightNum->isLiteralNumber()) {
+                    return std::make_shared<Number>(leftNum->calculate() + rightNum->calculate());
+                }
             }
         }
         return std::make_shared<Addition>(leftS, rightS);
@@ -109,14 +111,16 @@ public:
         auto leftS = left_->simplify();
         auto rightS = right_->simplify();
 
-        // x - 0 = x
+        // x - 0 = x (only for literal numbers)
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (std::abs(rightNum->calculate()) < EPSILON) return leftS;
+            if (rightNum->isLiteralNumber() && std::abs(rightNum->calculate()) < EPSILON) return leftS;
         }
-        // Constant folding
+        // Constant folding (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-                return std::make_shared<Number>(leftNum->calculate() - rightNum->calculate());
+                if (leftNum->isLiteralNumber() && rightNum->isLiteralNumber()) {
+                    return std::make_shared<Number>(leftNum->calculate() - rightNum->calculate());
+                }
             }
         }
         return std::make_shared<Subtraction>(leftS, rightS);
@@ -142,19 +146,26 @@ public:
         auto leftS = left_->simplify();
         auto rightS = right_->simplify();
 
-        // 0 * x = 0, x * 0 = 0
+        // 0 * x = 0, 1 * x = x (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (std::abs(leftNum->calculate()) < EPSILON) return leftS;
-            if (std::abs(leftNum->calculate() - 1.0L) < EPSILON) return rightS;
+            if (leftNum->isLiteralNumber()) {
+                if (std::abs(leftNum->calculate()) < EPSILON) return leftS;
+                if (std::abs(leftNum->calculate() - 1.0L) < EPSILON) return rightS;
+            }
         }
+        // x * 0 = 0, x * 1 = x (only for literal numbers)
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (std::abs(rightNum->calculate()) < EPSILON) return rightS;
-            if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) return leftS;
+            if (rightNum->isLiteralNumber()) {
+                if (std::abs(rightNum->calculate()) < EPSILON) return rightS;
+                if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) return leftS;
+            }
         }
-        // Constant folding
+        // Constant folding (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-                return std::make_shared<Number>(leftNum->calculate() * rightNum->calculate());
+                if (leftNum->isLiteralNumber() && rightNum->isLiteralNumber()) {
+                    return std::make_shared<Number>(leftNum->calculate() * rightNum->calculate());
+                }
             }
         }
         return std::make_shared<Multiplication>(leftS, rightS);
@@ -175,7 +186,7 @@ public:
     [[nodiscard]] number calculate() const override { 
         const auto divisor = right_->calculate();
         if (std::abs(divisor) < DIVISION_BY_ZERO_THRESHOLD) {
-            return std::numeric_limits<number>::quiet_NaN();
+            return std::numeric_limits<number>::infinity();
         }
         return left_->calculate() / divisor; 
     }
@@ -184,20 +195,22 @@ public:
         auto leftS = left_->simplify();
         auto rightS = right_->simplify();
 
-        // x / 1 = x
+        // x / 1 = x (only for literal numbers)
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) return leftS;
+            if (rightNum->isLiteralNumber() && std::abs(rightNum->calculate() - 1.0L) < EPSILON) return leftS;
         }
-        // 0 / x = 0 (if x != 0)
+        // 0 / x = 0 (if x != 0, only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (std::abs(leftNum->calculate()) < EPSILON) return leftS;
+            if (leftNum->isLiteralNumber() && std::abs(leftNum->calculate()) < EPSILON) return leftS;
         }
-        // Constant folding
+        // Constant folding (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-                const auto divisor = rightNum->calculate();
-                if (std::abs(divisor) > DIVISION_BY_ZERO_THRESHOLD) {
-                    return std::make_shared<Number>(leftNum->calculate() / divisor);
+                if (leftNum->isLiteralNumber() && rightNum->isLiteralNumber()) {
+                    const auto divisor = rightNum->calculate();
+                    if (std::abs(divisor) > DIVISION_BY_ZERO_THRESHOLD) {
+                        return std::make_shared<Number>(leftNum->calculate() / divisor);
+                    }
                 }
             }
         }
@@ -238,34 +251,84 @@ public:
         auto leftS = left_->simplify();
         auto rightS = right_->simplify();
 
-        // x^0 = 1, x^1 = x
+        // x^0 = 1, x^1 = x (only for literal numbers)
         if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-            if (std::abs(rightNum->calculate()) < EPSILON) {
-                return std::make_shared<Number>(1.0L);
-            }
-            if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) {
-                return leftS;
+            if (rightNum->isLiteralNumber()) {
+                if (std::abs(rightNum->calculate()) < EPSILON) {
+                    return std::make_shared<Number>(1.0L);
+                }
+                if (std::abs(rightNum->calculate() - 1.0L) < EPSILON) {
+                    return leftS;
+                }
             }
         }
-        // 0^x = 0 (for x > 0), 1^x = 1
+        // 0^x = 0 (for x > 0), 1^x = 1 (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
-            if (std::abs(leftNum->calculate()) < EPSILON) {
-                return leftS; // 0^x = 0
-            }
-            if (std::abs(leftNum->calculate() - 1.0L) < EPSILON) {
-                return leftS; // 1^x = 1
+            if (leftNum->isLiteralNumber()) {
+                if (std::abs(leftNum->calculate()) < EPSILON) {
+                    return leftS; // 0^x = 0
+                }
+                if (std::abs(leftNum->calculate() - 1.0L) < EPSILON) {
+                    return leftS; // 1^x = 1
+                }
             }
         }
-        // Constant folding
+        // Constant folding (only for literal numbers)
         if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
             if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
-                const auto result = std::pow(leftNum->calculate(), rightNum->calculate());
-                if (std::isfinite(result)) {
-                    return std::make_shared<Number>(result);
+                if (leftNum->isLiteralNumber() && rightNum->isLiteralNumber()) {
+                    const auto result = std::pow(leftNum->calculate(), rightNum->calculate());
+                    if (std::isfinite(result)) {
+                        return std::make_shared<Number>(result);
+                    }
                 }
             }
         }
         return std::make_shared<Power>(leftS, rightS);
+    }
+};
+
+class Modulo : public BinaryOperation {
+public:
+    Modulo(NodePtr left, NodePtr right)
+        : BinaryOperation("%", std::move(left), std::move(right)) {}
+    Modulo(number left, NodePtr right)
+        : BinaryOperation("%", left, std::move(right)) {}
+    Modulo(NodePtr left, number right)
+        : BinaryOperation("%", std::move(left), right) {}
+    Modulo(number left, number right)
+        : BinaryOperation("%", left, right) {}
+
+    [[nodiscard]] number calculate() const override { 
+        const auto divisor = right_->calculate();
+        if (std::abs(divisor) < DIVISION_BY_ZERO_THRESHOLD) {
+            return std::numeric_limits<number>::infinity();
+        }
+        return std::fmod(left_->calculate(), divisor);
+    }
+
+    [[nodiscard]] string toCppCode() const override {
+        const string leftCode = left_ ? left_->toCppCode() : "0.0L";
+        const string rightCode = right_ ? right_->toCppCode() : "0.0L";
+        return "std::fmod(" + leftCode + ", " + rightCode + ")";
+    }
+
+    [[nodiscard]] NodePtr simplify() const override {
+        auto leftS = left_->simplify();
+        auto rightS = right_->simplify();
+
+        // Constant folding (only for literal numbers)
+        if (auto leftNum = std::dynamic_pointer_cast<Number>(leftS)) {
+            if (auto rightNum = std::dynamic_pointer_cast<Number>(rightS)) {
+                if (leftNum->isLiteralNumber() && rightNum->isLiteralNumber()) {
+                    const auto divisor = rightNum->calculate();
+                    if (std::abs(divisor) > DIVISION_BY_ZERO_THRESHOLD) {
+                        return std::make_shared<Number>(std::fmod(leftNum->calculate(), divisor));
+                    }
+                }
+            }
+        }
+        return std::make_shared<Modulo>(leftS, rightS);
     }
 };
 #endif

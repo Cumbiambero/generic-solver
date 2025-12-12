@@ -17,5 +17,6 @@
 #include "audio-operators.hpp"
 #include "precision-tuner.hpp"
 #include "targeted-tuner.hpp"
+#include "prime-pattern-mutator.hpp"
 
 #endif

@@ -1,6 +1,3 @@
-#include <iomanip>
-#include <vector>
-#include <limits>
 #ifndef GENERIC_SOLVER_SOLVER_HPP
 #define GENERIC_SOLVER_SOLVER_HPP
 
@@ -11,22 +8,26 @@
 #include "ultra-precision-fitness.hpp"
 #include "../tree/unary.hpp"
 #include "../tree/binary.hpp"
+#include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
+#include <execution>
+#include <future>
+#include <iomanip>
+#include <limits>
+#include <set>
 #include <thread>
 #include <utility>
-#include <atomic>
-#include <future>
-#include <algorithm>
-#include <execution>
-#include <set>
-#include <chrono>
-#include <iomanip>
 #include <vector>
 
 class Solution {
 public:
     Solution(Formula formula, ChangerType lastChanger, number rate) noexcept
-            : formula_(std::move(formula)), lastChanger_(lastChanger), rate_(rate) {}
+            : formula_(std::move(formula)), 
+              lastChanger_(lastChanger), 
+              rate_(rate),
+              cachedString_(formula_.toString()) {}
 
     Solution(const Solution& copy) = default;
     Solution(Solution&& other) noexcept = default;
@@ -43,15 +44,11 @@ public:
         }
         const auto diff = std::abs(a.rate_ - b.rate_);
         if (diff < EPSILON_FOR_RATE) {
-            const auto aString = a.getFormula().toString();
-            const auto bString = b.getFormula().toString();
-            if (aString.size() != bString.size()) {
-                // Prefer shorter formula when rates tie
-                return aString.size() > bString.size();
+            if (a.cachedString_.size() != b.cachedString_.size()) {
+                return a.cachedString_.size() > b.cachedString_.size();
             }
-            // As a final tiebreaker, use lexicographical order to avoid set collisions
-            if (aString != bString) {
-                return aString > bString;
+            if (a.cachedString_ != b.cachedString_) {
+                return a.cachedString_ > b.cachedString_;
             }
         }
         return false;
@@ -60,11 +57,13 @@ public:
     [[nodiscard]] const Formula& getFormula() const noexcept { return formula_; }
     [[nodiscard]] ChangerType getLastChanger() const noexcept { return lastChanger_; }
     [[nodiscard]] number getRate() const noexcept { return rate_; }
+    [[nodiscard]] const string& getCachedString() const noexcept { return cachedString_; }
 
 private:
     Formula formula_;
     ChangerType lastChanger_;
     number rate_;
+    string cachedString_;
 };
 
 class Evaluator {

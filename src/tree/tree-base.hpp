@@ -96,6 +96,9 @@ public:
             const_cast<Number*>(this)->shared_from_this());
     }
 
+    // Returns true only for literal numbers (not Variables or Constants)
+    [[nodiscard]] virtual bool isLiteralNumber() const noexcept { return true; }
+
 protected:
     number value_;
 };
@@ -131,6 +134,8 @@ public:
             const_cast<Variable*>(this)->shared_from_this());
     }
 
+    [[nodiscard]] bool isLiteralNumber() const noexcept override { return false; }
+
 private:
     string symbol_;
 };
@@ -156,6 +161,8 @@ public:
         return std::static_pointer_cast<Constant>(
             const_cast<Constant*>(this)->shared_from_this());
     }
+
+    [[nodiscard]] bool isLiteralNumber() const noexcept override { return false; }
 
 private:
     const string symbol_;

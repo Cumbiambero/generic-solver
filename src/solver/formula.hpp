@@ -25,8 +25,27 @@ public:
         init(variables_);
     }
 
-    Formula(Formula&& other) noexcept = default;
-    Formula& operator=(Formula&& other) noexcept = default;
+    Formula(Formula&& other) noexcept 
+        : constants_(std::move(other.constants_)),
+          binaryOperators_(std::move(other.binaryOperators_)),
+          numbers_(std::move(other.numbers_)),
+          variablePositions_(std::move(other.variablePositions_)),
+          variableNames_(std::move(other.variableNames_)),
+          variables_(std::move(other.variables_)),
+          root_(std::move(other.root_)) {}
+          
+    Formula& operator=(Formula&& other) noexcept {
+        if (this != &other) {
+            variables_ = std::move(other.variables_);
+            root_ = std::move(other.root_);
+            constants_ = std::move(other.constants_);
+            binaryOperators_ = std::move(other.binaryOperators_);
+            numbers_ = std::move(other.numbers_);
+            variablePositions_ = std::move(other.variablePositions_);
+            variableNames_ = std::move(other.variableNames_);
+        }
+        return *this;
+    }
     Formula& operator=(const Formula& other) {
         if (this != &other) {
             variables_ = other.variables_;
@@ -92,8 +111,8 @@ public:
     }
 
     [[nodiscard]] string toString() const { 
-        root_->simplify();
-        return root_->toString();
+        auto simplified = root_->simplify();
+        return simplified->toString();
     }
 
     [[nodiscard]] NodePtr getRoot() const noexcept { return root_; }
@@ -247,8 +266,9 @@ private:
             copy = make_shared<Division>(leftCopy, rightCopy);
         } else if (dynamic_cast<Power*>(binary)) {
             copy = make_shared<Power>(leftCopy, rightCopy);
+        } else if (dynamic_cast<Modulo*>(binary)) {
+            copy = make_shared<Modulo>(leftCopy, rightCopy);
         } else {
-            // Fallback for unknown binary operations
             return binary->shared_from_this();
         }
         
@@ -284,8 +304,39 @@ private:
             copy = make_shared<LogarithmBinary>(operandCopy);
         } else if (dynamic_cast<Exponentiation*>(unary)) {
             copy = make_shared<Exponentiation>(operandCopy);
+        } else if (dynamic_cast<HyperbolicTangent*>(unary)) {
+            copy = make_shared<HyperbolicTangent>(operandCopy);
+        } else if (dynamic_cast<HyperbolicSine*>(unary)) {
+            copy = make_shared<HyperbolicSine>(operandCopy);
+        } else if (dynamic_cast<HyperbolicCosine*>(unary)) {
+            copy = make_shared<HyperbolicCosine>(operandCopy);
+        } else if (dynamic_cast<ArcSine*>(unary)) {
+            copy = make_shared<ArcSine>(operandCopy);
+        } else if (dynamic_cast<ArcCosine*>(unary)) {
+            copy = make_shared<ArcCosine>(operandCopy);
+        } else if (dynamic_cast<ArcTangent*>(unary)) {
+            copy = make_shared<ArcTangent>(operandCopy);
+        } else if (dynamic_cast<AbsoluteValue*>(unary)) {
+            copy = make_shared<AbsoluteValue>(operandCopy);
+        } else if (dynamic_cast<Floor*>(unary)) {
+            copy = make_shared<Floor>(operandCopy);
+        } else if (dynamic_cast<Ceiling*>(unary)) {
+            copy = make_shared<Ceiling>(operandCopy);
+        } else if (dynamic_cast<Sigmoid*>(unary)) {
+            copy = make_shared<Sigmoid>(operandCopy);
+        } else if (dynamic_cast<SoftSaturation*>(unary)) {
+            copy = make_shared<SoftSaturation>(operandCopy);
+        } else if (dynamic_cast<Round*>(unary)) {
+            copy = make_shared<Round>(operandCopy);
+        } else if (dynamic_cast<Sign*>(unary)) {
+            copy = make_shared<Sign>(operandCopy);
+        } else if (dynamic_cast<Gamma*>(unary)) {
+            copy = make_shared<Gamma>(operandCopy);
+        } else if (dynamic_cast<Reciprocal*>(unary)) {
+            copy = make_shared<Reciprocal>(operandCopy);
+        } else if (dynamic_cast<Negate*>(unary)) {
+            copy = make_shared<Negate>(operandCopy);
         } else {
-            // Fallback for unknown unary operations
             return unary->shared_from_this();
         }
         

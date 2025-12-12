@@ -1,4 +1,5 @@
 #ifndef GENERIC_SOLVER_ADAPTIVE_MUTATOR_HPP
+#define GENERIC_SOLVER_ADAPTIVE_MUTATOR_HPP
 
 #include "../../utils/base.hpp"
 #include "changer-base.hpp"
@@ -112,4 +113,4 @@ private:
     mutable AlmostRandomNumber randomNumber_;
 };
 
-#endif
+#endif // GENERIC_SOLVER_ADAPTIVE_MUTATOR_HPP

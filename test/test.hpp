@@ -4,7 +4,7 @@
 
 #include "../src/utils/arbitrary.hpp"
 #include "../src/solver/formula.hpp"
-#include "doctest/doctest.h" // Ubuntu: sudo apt-get install doctest-dev or from https://github.com/doctest/doctest
+#include <doctest/doctest.h>
 #include <sstream>
 #include <iomanip>
 
@@ -29,6 +29,10 @@ class TestRandomNumber : public RandomNumber {
 public:
     int calculate(int from, int to) override {
         return (from + to) / 2;
+    }
+    
+    number calculateReal(number from, number to) override {
+        return (from + to) / 2.0L;
     }
 };
 

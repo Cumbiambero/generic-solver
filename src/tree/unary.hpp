@@ -28,10 +28,15 @@ enum class UnaryOperationType {
     FLOOR,
     CEIL,
     SIGMOID,
-    SOFT_SAT
+    SOFT_SAT,
+    ROUND,
+    SIGN,
+    GAMMA,
+    RECIPROCAL,
+    NEGATE
 };
 
-static constexpr std::array<UnaryOperationType, 23> UNARY_OPERATIONS{
+static constexpr std::array<UnaryOperationType, 28> UNARY_OPERATIONS{
     UnaryOperationType::SIN, UnaryOperationType::COS, UnaryOperationType::TAN,
     UnaryOperationType::SQUARE, UnaryOperationType::CUBE, UnaryOperationType::SQUARE_ROOT,
     UnaryOperationType::SQUARE_ROOT_NEG, UnaryOperationType::CUBE_ROOT, UnaryOperationType::LOG,
@@ -39,7 +44,9 @@ static constexpr std::array<UnaryOperationType, 23> UNARY_OPERATIONS{
     UnaryOperationType::TANH, UnaryOperationType::SINH, UnaryOperationType::COSH,
     UnaryOperationType::ASIN, UnaryOperationType::ACOS, UnaryOperationType::ATAN,
     UnaryOperationType::ABS, UnaryOperationType::FLOOR, UnaryOperationType::CEIL,
-    UnaryOperationType::SIGMOID, UnaryOperationType::SOFT_SAT
+    UnaryOperationType::SIGMOID, UnaryOperationType::SOFT_SAT, UnaryOperationType::ROUND,
+    UnaryOperationType::SIGN, UnaryOperationType::GAMMA, UnaryOperationType::RECIPROCAL,
+    UnaryOperationType::NEGATE
 };
 
 class UnaryOperation : public Node {
@@ -395,6 +402,96 @@ public:
 protected:
     string getCppFunction() const override { 
         return "([](long double x) { return x / (1.0L + std::abs(x)); })";
+    }
+};
+
+class Round : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Round(const O& operand) : UnaryOperation("round", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return std::round(operand_->calculate());
+    }
+
+protected:
+    string getCppFunction() const override { return "std::round"; }
+};
+
+class Sign : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Sign(const O& operand) : UnaryOperation("sign", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        const auto x = operand_->calculate();
+        if (x > EPSILON) return 1.0L;
+        if (x < -EPSILON) return -1.0L;
+        return 0.0L;
+    }
+
+protected:
+    string getCppFunction() const override { 
+        return "([](long double x) { return (x > 0.0L) - (x < 0.0L); })";
+    }
+};
+
+class Gamma : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Gamma(const O& operand) : UnaryOperation("gamma", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        const auto x = operand_->calculate();
+        if (x <= 0.0L && std::floor(x) == x) {
+            return std::numeric_limits<number>::infinity();
+        }
+        return std::tgamma(x);
+    }
+
+protected:
+    string getCppFunction() const override { return "std::tgamma"; }
+};
+
+class Reciprocal : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Reciprocal(const O& operand) : UnaryOperation("1/", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        const auto x = operand_->calculate();
+        if (std::abs(x) < DIVISION_BY_ZERO_THRESHOLD) {
+            return std::numeric_limits<number>::infinity();
+        }
+        return 1.0L / x;
+    }
+
+    [[nodiscard]] string toString() const override {
+        return "(1/" + (operand_ ? operand_->toString() : "null") + ')';
+    }
+
+    [[nodiscard]] string toCppCode() const override {
+        const string operandCode = operand_ ? operand_->toCppCode() : "0.0L";
+        return "(1.0L / " + operandCode + ")";
+    }
+};
+
+class Negate : public UnaryOperation {
+public:
+    template<typename O>
+    explicit Negate(const O& operand) : UnaryOperation("-", operand) {}
+
+    [[nodiscard]] number calculate() const override {
+        return -operand_->calculate();
+    }
+
+    [[nodiscard]] string toString() const override {
+        return "(-" + (operand_ ? operand_->toString() : "null") + ')';
+    }
+
+    [[nodiscard]] string toCppCode() const override {
+        const string operandCode = operand_ ? operand_->toCppCode() : "0.0L";
+        return "(-" + operandCode + ")";
     }
 };
 

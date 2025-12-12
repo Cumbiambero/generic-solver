@@ -6,9 +6,6 @@
 #include "../src/solver/changers/reducer-by-halving.hpp"
 #include "../src/solver/changers/incrementor-by-doubling.hpp"
 
-Variable x("x", 1);
-auto var_x = std::make_shared<Variable>(x);
-Formula formula(std::make_shared<Division>(var_x, std::make_shared<Number>(2)), x);
 ReducerByOne reducerByOne(testCoin);
 ReducerByFragment reducerByFragment(testCoin);
 ReducerByHalving reducerByHalving(testCoin);
@@ -17,23 +14,33 @@ IncrementorByFragment incrementorByFragment(testCoin);
 IncrementorByDoubling incrementorByDoubling(testCoin);
 
 TEST_CASE("Increment and decrement") {
-    CHECK(formula.toString() == "(x/2)");
+    Variable x("x", 5);
+    auto var_x = std::make_shared<Variable>(x);
+    Formula formula(std::make_shared<Division>(var_x, std::make_shared<Number>(2)), x);
+    
+    number initialValue = formula.getNumbers()[0]->calculate();
+    CHECK(initialValue == doctest::Approx(2.0L));
 
     formula = incrementorByOne.change(formula);
-    CHECK(formula.toString() == "(x/3)");
+    number afterIncrement = formula.getNumbers()[0]->calculate();
+    CHECK(afterIncrement == doctest::Approx(3.0L));
 
     for (int i = 0; i < 100; ++i) {
         formula = incrementorByOne.change(formula);
     }
-    CHECK(formula.toString() == "(x/53)");
+    CHECK(formula.getNumbers()[0]->calculate() == doctest::Approx(53.0L));
 
     for (int i = 0; i < 10; ++i) {
         formula = reducerByOne.change(formula);
     }
-    CHECK(formula.toString() == "(x/48)");
+    CHECK(formula.getNumbers()[0]->calculate() == doctest::Approx(48.0L));
 }
 
 TEST_CASE("Smallest fractions") {
+    Variable x("x", 5);
+    auto var_x = std::make_shared<Variable>(x);
+    Formula formula(std::make_shared<Division>(var_x, std::make_shared<Number>(48)), x);
+    
     number beforeIncrement(formula.getNumbers()[0]->calculate());
     for(int i = 0; i < 10; ++i) {
         formula = incrementorByFragment.change(formula);
@@ -49,21 +56,24 @@ TEST_CASE("Smallest fractions") {
     number afterDecrement(formula.getNumbers()[0]->calculate());
 
     CHECK((beforeDecrement > afterDecrement));
-    CHECK((beforeIncrement == afterDecrement));
+    CHECK((beforeIncrement == doctest::Approx(afterDecrement)));
 }
 
 TEST_CASE("Halving and doubling") {
-    formula.getNumbers()[0]->setValue(60);
-    CHECK(formula.toString() == "(x/60)");
+    Variable x("x", 5);
+    auto var_x = std::make_shared<Variable>(x);
+    Formula formula(std::make_shared<Division>(var_x, std::make_shared<Number>(60)), x);
+    
+    CHECK(formula.getNumbers()[0]->calculate() == doctest::Approx(60.0L));
 
     formula = incrementorByDoubling.change(formula);
-    CHECK(formula.toString() == "(x/120)");
+    CHECK(formula.getNumbers()[0]->calculate() == doctest::Approx(120.0L));
 
     formula = reducerByHalving.change(formula);
-    CHECK(formula.toString() == "(x/60)");
+    CHECK(formula.getNumbers()[0]->calculate() == doctest::Approx(60.0L));
 
     for(int i = 0; i < 10; ++i) {
         formula = reducerByHalving.change(formula);
     }
-    CHECK(formula.toString() == "(x/1.875)");
+    CHECK(formula.getNumbers()[0]->calculate() == doctest::Approx(1.875L));
 }

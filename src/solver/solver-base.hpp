@@ -1,5 +1,5 @@
-#ifndef GENERIC_SOLVER_CHANGERS_BASE_HPP
-#define GENERIC_SOLVER_CHANGERS_BASE_HPP
+#ifndef GENERIC_SOLVER_SOLVER_BASE_HPP
+#define GENERIC_SOLVER_SOLVER_BASE_HPP
 
 #include "formula.hpp"
 #include "../utils/arbitrary.hpp"
@@ -53,7 +53,7 @@ private:
         changers_[ChangerType::NUMBER_INSERTER] = make_unique<NumberInserter>();
         changers_[ChangerType::OPERATION_REPLACER] = make_unique<OperationReplacer>();
         changers_[ChangerType::PURGER] = make_unique<Purger>();
-        changers_[ChangerType::MERGER] = make_unique<OperationReplacer>(); // this is intentional
+        changers_[ChangerType::MERGER] = make_unique<OperationReplacer>();
         changers_[ChangerType::SIMPLIFIER] = make_unique<Simplifier>();
         changers_[ChangerType::FUNCTION_TRANSFORMER] = make_unique<FunctionTransformer>();
         changers_[ChangerType::VARIABLE_SWAPPER] = make_unique<VariableSwapper>();
@@ -67,6 +67,9 @@ private:
         changers_[ChangerType::NONLINEARITY_INJECTOR] = make_unique<NonlinearityInjector>();
         changers_[ChangerType::TARGETED_TUNER] = make_unique<TargetedTuner>();
         changers_[ChangerType::PATTERN_OPTIMIZER] = make_unique<PatternOptimizer>();
+        changers_[ChangerType::PRIME_PATTERN_MUTATOR] = make_unique<PrimePatternMutator>();
+        changers_[ChangerType::MODULAR_ARITHMETIC_ENHANCER] = make_unique<ModularArithmeticEnhancer>();
+        changers_[ChangerType::POLYNOMIAL_COEFFICIENT_TUNER] = make_unique<PolynomialCoefficientTuner>();
     }
 };
 

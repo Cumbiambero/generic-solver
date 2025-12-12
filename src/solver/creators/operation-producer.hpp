@@ -69,6 +69,16 @@ public:
                 return std::make_shared<Sigmoid>(operand);
             case UnaryOperationType::SOFT_SAT:
                 return std::make_shared<SoftSaturation>(operand);
+            case UnaryOperationType::ROUND:
+                return std::make_shared<Round>(operand);
+            case UnaryOperationType::SIGN:
+                return std::make_shared<Sign>(operand);
+            case UnaryOperationType::GAMMA:
+                return std::make_shared<Gamma>(operand);
+            case UnaryOperationType::RECIPROCAL:
+                return std::make_shared<Reciprocal>(operand);
+            case UnaryOperationType::NEGATE:
+                return std::make_shared<Negate>(operand);
             default:
                 return nullptr;
         }
@@ -86,6 +96,8 @@ public:
                 return std::make_shared<Division>(left, right);
             case BinaryOperationType::POW:
                 return std::make_shared<Power>(left, right);
+            case BinaryOperationType::MOD:
+                return std::make_shared<Modulo>(left, right);
             default: 
                 return nullptr;
         }

@@ -22,6 +22,7 @@ set(SOURCES src/main.cpp)
 option(BUILD_TESTING "Build tests" OFF)
 
 if(BUILD_TESTING)
+  enable_testing()
   find_package(doctest CONFIG)
   if(NOT doctest_FOUND)
     message(WARNING "doctest not found! Please install doctest (e.g., 'sudo apt-get install doctest-dev' or 'vcpkg install doctest').")

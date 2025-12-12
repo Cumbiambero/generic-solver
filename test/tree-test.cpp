@@ -95,5 +95,6 @@ TEST_CASE("Trigonometric") {
     Addition twoPi(pi3, pi4);
     auto twoPiPtr = std::make_shared<Addition>(pi3, pi4);
     CHECK(format(Addition(std::make_shared<Cosine>(twoPiPtr), std::make_shared<Sine>(twoPiPtr)).calculate()) == "1");
-    CHECK(format(Cosine(std::make_shared<Cosine>(twoPiPtr)).calculate()) == "1");
+    // cos(cos(2π)) = cos(1) ≈ 0.5403
+    CHECK(format(Cosine(std::make_shared<Cosine>(twoPiPtr)).calculate()) == "0.54030231");
 }
