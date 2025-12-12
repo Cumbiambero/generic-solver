@@ -5,6 +5,9 @@
 #include <stdexcept>
 #include <thread>
 #include <chrono>
+#include <sstream>
+#include <fstream>
+#include <iomanip>
 
 int start(Solver& solver, bool noCli) {
     if (noCli) { // Run solver synchronously without CLI thread
@@ -49,6 +52,8 @@ int main(int argc, char** argv) {
         number target = ALMOST_PERFECT;
         std::size_t threads = 0; // auto
         std::chrono::seconds timeLimit{0};
+        std::string outFormat = "human"; // human | json | csv
+        std::string outPath; // empty -> stdout
 
         // Optional flags
         for (; i < argc; ++i) {
@@ -77,6 +82,14 @@ int main(int argc, char** argv) {
                 ++i;
             } else if (arg == "--no-cli") {
                 noCli = true;
+            } else if (arg == "--format") {
+                std::string v(next());
+                if (v == "human" || v == "json" || v == "csv") outFormat = v;
+                else throw std::invalid_argument("--format must be human|json|csv");
+                ++i;
+            } else if (arg == "--output") {
+                outPath = std::string(next());
+                ++i;
             } else if (arg == "--help" || arg == "-h") {
                 std::cout << "Usage: solver <input.csv> <results.csv> <var...> [options]\n"
                           << "Options:\n"
@@ -85,6 +98,8 @@ int main(int argc, char** argv) {
                           << "  --time <seconds>                  Time limit; stops after N seconds\n"
                           << "  --threads <N>                     Number of worker threads (default: CPU-1)\n"
                           << "  --no-cli                          Disable interactive prompt (batch mode)\n"
+                          << "  --format <human|json|csv>         Output format (default: human)\n"
+                          << "  --output <file>                   Write output to file (default: stdout)\n"
                           << "  -h, --help                        Show this help\n";
                 return 0;
             } else {
@@ -100,7 +115,70 @@ int main(int argc, char** argv) {
 
         Solver solver(std::move(variables), std::move(input), std::move(results),
                       useEnhanced, useUltra, target, threads, timeLimit);
-    return start(solver, noCli);
+
+        const bool batchMode = noCli || (outFormat != "human");
+        const int rc = start(solver, batchMode);
+
+        // small JSON escape helper
+        auto escape_json = [](const std::string& s) {
+            std::ostringstream o;
+            for (char ch : s) {
+                unsigned char c = static_cast<unsigned char>(ch);
+                switch (c) {
+                    case '"': o << "\\\""; break;
+                    case '\\': o << "\\\\"; break;
+                    case '\b': o << "\\b"; break;
+                    case '\f': o << "\\f"; break;
+                    case '\n': o << "\\n"; break;
+                    case '\r': o << "\\r"; break;
+                    case '\t': o << "\\t"; break;
+                    default:
+                        if (c < 0x20) {
+                            o << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)c;
+                        } else o << c;
+                }
+            }
+            return o.str();
+        };
+
+        auto escape_csv = [](const std::string& s) {
+            // Escape quotes by doubling them, and wrap field in quotes
+            std::string out;
+            out.reserve(s.size() + 2);
+            for (char ch : s) {
+                if (ch == '"') out.push_back('"'), out.push_back('"');
+                else out.push_back(ch);
+            }
+            return out;
+        };
+
+        if (outFormat == "json" || outFormat == "csv") {
+            std::ostringstream oss;
+            const auto bestSet = solver.hallOfFameCopy();
+            if (!bestSet.empty()) {
+                const auto best = *bestSet.rbegin();
+                if (outFormat == "json") {
+                    oss << "{\n";
+                    oss << "  \"metrics\": { \"duration_seconds\": " << solver.elapsed_seconds() << ", \"threads\": " << solver.threads() << " },\n";
+                    oss << "  \"result\": { \"formula\": \"" << escape_json(best.getFormula().toString()) << "\", \"score\": " << best.getRate() << " }\n";
+                    oss << "}\n";
+                } else {
+                    oss << "formula,score,duration_seconds\n";
+                    oss << '"' << escape_csv(best.getFormula().toString()) << "\"," << best.getRate() << ',' << solver.elapsed_seconds() << "\n";
+                }
+            } else {
+                if (outFormat == "json") oss << "{ \"metrics\": { \"duration_seconds\": " << solver.elapsed_seconds() << " }, \"result\": null }\n";
+            }
+
+            if (outPath.empty()) std::cout << oss.str();
+            else {
+                std::ofstream ofs(outPath);
+                if (!ofs) std::cerr << "Failed to open output file: " << outPath << "\n";
+                else ofs << oss.str();
+            }
+        }
+
+        return rc;
         
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

@@ -9,6 +9,8 @@
 #include "../tree/unary.hpp"
 #include "../tree/binary.hpp"
 #include <algorithm>
+#include <functional>
+#include <memory>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -163,9 +165,9 @@ public:
         }
     }
 
-    // Returns true if a solution meeting targetFitness_ (or perfect) was found
     bool start() {
         constexpr std::size_t INITIAL_POPULATION_SIZE = 20;
+        startTime_ = std::chrono::steady_clock::now();
         if (currentState_ == SolverState::READY) {
             std::unique_lock lock(solutionsMutex_);
             for (std::size_t i = 0; i < INITIAL_POPULATION_SIZE; ++i) {
@@ -225,6 +227,7 @@ public:
         
         bool success = false;
         if (currentState_ == SolverState::DONE) {
+            endTime_ = std::chrono::steady_clock::now();
             {
                 std::shared_lock hallLock(hallOfFameMutex_);
                 for (const auto& sol : hallOfFame_) {
@@ -244,6 +247,21 @@ public:
         std::cout << "\nPrevious intentions:\n";
         this->printSolutions(solutions_);
     }
+
+    // Accessors for integration / machine-readable output
+    [[nodiscard]] std::set<Solution> hallOfFameCopy() const {
+        std::shared_lock lock(hallOfFameMutex_);
+        return hallOfFame_;
+    }
+
+    [[nodiscard]] double elapsed_seconds() const noexcept {
+        using namespace std::chrono;
+        if (startTime_.time_since_epoch().count() == 0) return 0.0;
+        const auto end = (currentState_.load() == SolverState::RUNNING) ? steady_clock::now() : endTime_;
+        return duration_cast<duration<double>>(end - startTime_).count();
+    }
+
+    [[nodiscard]] std::size_t threads() const noexcept { return cores_.load(); }
     
     void requestStop() noexcept {
         currentState_ = SolverState::DONE;
@@ -292,6 +310,14 @@ public:
         return currentState_.load();
     }
 
+    void setProgressCallback(std::function<void(number)> cb) {
+        progressCallback_ = std::move(cb);
+    }
+
+    void setCancelFlag(std::shared_ptr<std::atomic<bool>> flag) {
+        cancelFlag_ = std::move(flag);
+    }
+
     void shrinkNoPrintNoUnlock() {
         if (solutions_.size() > SOLUTIONS_SIZE) {
             auto rBegin = solutions_.rbegin();
@@ -333,6 +359,11 @@ private:
     // Early stopping controls
     std::atomic<bool> hasDeadline_{false};
     std::chrono::steady_clock::time_point deadline_{};
+    // Timing metrics for integration
+    std::chrono::steady_clock::time_point startTime_{};
+    std::chrono::steady_clock::time_point endTime_{};
+    std::function<void(number)> progressCallback_ = nullptr;
+    std::shared_ptr<std::atomic<bool>> cancelFlag_ = nullptr;
 
     void work() {
         std::size_t stagnationCounter = 0;
@@ -343,6 +374,10 @@ private:
         
         while (currentState_.load() == SolverState::RUNNING) {
             if (++iterations > ITERATION_HARD_CAP) {
+                currentState_ = SolverState::DONE;
+                break;
+            }
+            if (cancelFlag_ && cancelFlag_->load()) {
                 currentState_ = SolverState::DONE;
                 break;
             }
@@ -399,6 +434,7 @@ private:
                 stagnationCounter = 0;
                 aggressiveStagnationCounter = 0;
                 lastBestRate = currentBestRate;
+                if (progressCallback_) progressCallback_(static_cast<number>(currentBestRate));
             }
             
             // Stop if target fitness achieved or perfect match found
