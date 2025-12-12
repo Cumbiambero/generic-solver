@@ -31,6 +31,8 @@ There are some input and result files stored in the test subdirectory as demonst
 ./solver ../test/resources/input-one-to-ten.csv ../test/resources/square-plus-three-results.csv x
 ./solver ../test/resources/input-one-to-thousand.csv ../test/resources/primes-results.csv x
 ./solver ../test/resources/input-one-to-ten.csv ../test/resources/circle-results.csv r
+./solver ../test/resources/kinetic-energy-input.csv ../test/resources/kinetic-energy-results.csv mass,velocity
+./solver ../test/resources/gravity-input.csv ../test/resources/gravity-results.csv m1,m2,d
 ```
 
 ### Development
