@@ -1,4 +1,5 @@
 #include "utils/csv.hpp"
+#include "utils/runtime-config.hpp"
 #include "solver/solver.hpp"
 #include "solver/cli.hpp"
 #include <iostream>
@@ -46,6 +47,7 @@ int main(int argc, char** argv) {
             variables.emplace_back(argv[i]);
         }
 
+        RuntimeConfig config; // Load default configuration
         bool useEnhanced = true;
         bool useUltra = false;
         bool noCli = false;
@@ -68,6 +70,15 @@ int main(int argc, char** argv) {
                 else if (v == "enhanced") { useEnhanced = true; useUltra = false; }
                 else if (v == "ultra") { useEnhanced = true; useUltra = true; }
                 else throw std::invalid_argument("--fitness must be basic|enhanced|ultra");
+                ++i;
+            } else if (arg == "--config") {
+                std::string configPath(next());
+                try {
+                    config = RuntimeConfig::loadFromFile(configPath);
+                    std::cout << "Loaded configuration from: " << configPath << "\n";
+                } catch (const std::exception& e) {
+                    throw std::invalid_argument("Failed to load config file: " + std::string(e.what()));
+                }
                 ++i;
             } else if (arg == "--ultra") {
                 useUltra = true; useEnhanced = true;
@@ -93,6 +104,7 @@ int main(int argc, char** argv) {
             } else if (arg == "--help" || arg == "-h") {
                 std::cout << "Usage: solver <input.csv> <results.csv> <var...> [options]\n"
                           << "Options:\n"
+                          << "  --config <file>                   Load configuration from file\n"
                           << "  --fitness <basic|enhanced|ultra>  Fitness function (default: enhanced)\n"
                           << "  --target <0..1>                   Early-stop target fitness (default: " << (double)ALMOST_PERFECT << ")\n"
                           << "  --time <seconds>                  Time limit; stops after N seconds\n"

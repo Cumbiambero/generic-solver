@@ -371,11 +371,19 @@ private:
         number lastBestRate = 0.0L;
         std::size_t iterations = 0;
         constexpr std::size_t ITERATION_HARD_CAP = 200000;
+        constexpr std::size_t PROGRESS_REPORT_INTERVAL = 1000;
+        std::size_t lastReportIteration = 0;
         
         while (currentState_.load() == SolverState::RUNNING) {
             if (++iterations > ITERATION_HARD_CAP) {
                 currentState_ = SolverState::DONE;
                 break;
+            }
+            
+            // Periodic progress reporting
+            if (iterations - lastReportIteration >= PROGRESS_REPORT_INTERVAL) {
+                reportProgress(iterations, stagnationCounter);
+                lastReportIteration = iterations;
             }
             if (cancelFlag_ && cancelFlag_->load()) {
                 currentState_ = SolverState::DONE;
@@ -623,6 +631,27 @@ private:
         lock.unlock();
         
         return changerPicker_.pickChanger(changerType);
+    }
+    
+    void reportProgress(std::size_t iterations, std::size_t stagnation) const {
+        std::shared_lock solutionsLock(solutionsMutex_);
+        std::shared_lock hallLock(hallOfFameMutex_);
+        
+        if (solutions_.empty()) return;
+        
+        const auto& best = *solutions_.rbegin();
+        const auto elapsed = elapsed_seconds();
+        const auto iterationsPerSecond = iterations / (elapsed + 0.001);
+        
+        std::cout << "\r[" << std::fixed << std::setprecision(1) << elapsed << "s] "
+                  << "Iter: " << iterations 
+                  << " | Best: " << std::setprecision(8) << best.getRate()
+                  << " | Hall: " << hallOfFame_.size()
+                  << " | Stag: " << stagnation
+                  << " | It/s: " << std::setprecision(0) << iterationsPerSecond
+                  << " | Formula: " << best.getFormula().toString().substr(0, 30)
+                  << (best.getFormula().toString().length() > 30 ? "..." : "   ")
+                  << std::flush;
     }
 
 private:
